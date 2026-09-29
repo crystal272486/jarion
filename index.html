@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>JariON - 우리 학교 스마트 자리배치</title>
+<title>JariON v0.3 - 우리 학교 스마트 자리배치</title>
 <style>
 :root{--navy:#173b67;--blue:#2176d2;--line:#cfd8e3;--bg:#f4f7fb;--green:#1f9d61;--red:#e65353;--ink:#172033}
 *{box-sizing:border-box} body{margin:0;font-family:"Malgun Gothic","Noto Sans KR",sans-serif;background:var(--bg);color:var(--ink)}
@@ -126,11 +126,13 @@ const seed = {
 "5-4":[["김현우","재학"],["김우빈","재학"],["문주승","재학"],["박다은","재학"],["박서준","재학"],["송정우","재학"],["신규진","재학"],["안나혁","재학"],["안성민","재학"],["이민수","재학"],["이하준","재학"],["김로하","재학"],["김민아","재학"],["김소율","재학"],["김지윤","재학"],["문서영","재학"],["백세아","재학"],["안혜린","재학"],["이루비","재학"],["이서연","재학"],["진하은","재학"],["최혜빈","재학"]]
 };
 
-let data = JSON.parse(localStorage.getItem("jarionData")||"null");
+// v0.3: 사진 명렬표의 실제 학생번호(1~ / 51~) 반영
+const rosterNumbers={"2-1": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64], "2-2": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64], "2-3": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65], "2-4": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64], "4-1": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63], "4-2": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63], "4-3": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62], "4-4": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63], "5-1": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63], "5-2": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63], "5-3": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62], "5-4": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62]};
+let data = JSON.parse(localStorage.getItem("jarionData_v03")||"null");
 if(!data){
  data={rosters:{},assignments:{},constraints:{},history:{}};
- for(const [k,arr] of Object.entries(seed)) data.rosters[k]=arr.map((x,i)=>({id:k+"-"+(i+1),no:i+1,name:x[0],status:x[1]}));
- localStorage.setItem("jarionData",JSON.stringify(data));
+ for(const [k,arr] of Object.entries(seed)) data.rosters[k]=arr.map((x,i)=>({id:k+"-"+rosterNumbers[k][i],no:rosterNumbers[k][i],name:x[0],status:x[1]}));
+ localStorage.setItem("jarionData_v03",JSON.stringify(data));
 }
 let current="4-1", teacher=false, selectedPC=null;
 
@@ -138,7 +140,7 @@ const seatOrder=[28,26,27,25,30,29,6,12,5,11,4,10,3,9,2,8,1,7,18,24,17,23,16,22,
 const coords={};
 seatOrder.forEach((p,i)=>coords[p]=i);
 
-function persist(){localStorage.setItem("jarionData",JSON.stringify(data))}
+function persist(){localStorage.setItem("jarionData_v03",JSON.stringify(data))}
 function activeStudents(){return (data.rosters[current]||[]).filter(s=>s.status==="재학")}
 function assignment(){if(!data.assignments[current])data.assignments[current]={};return data.assignments[current]}
 function classLabel(){let [g,c]=current.split("-");return `${g}학년 ${c}반`}

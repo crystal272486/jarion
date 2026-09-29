@@ -16,7 +16,7 @@ main{display:grid;grid-template-columns:300px 1fr;gap:14px;padding:14px;min-heig
 .sidebar{padding:14px;display:flex;flex-direction:column;gap:14px}.section-title{font-size:18px;font-weight:900;margin-bottom:9px}
 .classgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.classgrid .grade{grid-column:1/-1;font-size:14px;font-weight:900;color:#31516f;margin-top:4px}
 .classbtn{background:#f5f8fc;border:1px solid #d4deea;color:#1f3550;padding:9px 4px}.classbtn.active{background:#1878df;color:white}
-.roster{border:1px solid var(--line);border-radius:8px;overflow:auto;height:350px}.row{display:grid;grid-template-columns:46px 1fr 62px;align-items:center;min-height:34px;border-bottom:1px solid #edf1f5;font-size:14px}.row>span{padding:6px}.row .no{text-align:center;color:#52657a}.status{font-size:12px;color:#b64242}
+.roster{border:1px solid var(--line);border-radius:8px;overflow:auto;height:350px}.row{display:grid;grid-template-columns:46px 1fr 62px;align-items:center;min-height:34px;border-bottom:1px solid #edf1f5;font-size:14px}.row>span{padding:6px}.row .no{text-align:center;color:#173b67;font-size:16px;font-weight:900;background:#eef4fb;border-right:1px solid #dbe4ee}.status{font-size:12px;color:#b64242}
 .roster-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}
 .note{font-size:12px;line-height:1.55;color:#617286;background:#f5f8fb;padding:10px;border-radius:8px}
 .content{padding:14px}.toolbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:10px}.toolbar h2{margin:0 10px 0 0;font-size:22px}.meta{color:#4e6d8c;font-weight:800}
@@ -53,7 +53,7 @@ main{display:grid;grid-template-columns:300px 1fr;gap:14px;padding:14px;min-heig
     <div id="classGrid" class="classgrid"></div>
   </div>
   <div>
-    <div class="section-title">학생 명렬표 <span id="studentCount" style="font-size:13px;color:#62768b"></span></div>
+    <div class="section-title">학생 명렬표 <small style="font-size:12px;color:#71849a">(번호 · 이름)</small> <span id="studentCount" style="font-size:13px;color:#62768b"></span></div>
     <div id="roster" class="roster"></div>
     <div class="roster-actions teacher-only">
       <button class="primary" onclick="openRosterEditor()">명렬표 수정</button>
@@ -154,7 +154,7 @@ function renderRoster(){
 }
 function nameAt(pc){let id=assignment()[pc];return (data.rosters[current]||[]).find(s=>s.id===id)}
 function seatName(pc){
- let s=nameAt(pc); return `<div class="cell name ${s?"":"empty"} ${selectedPC===pc?"selected":""}" onclick="selectSeat(${pc})">${s?s.name:"빈자리"}</div>`;
+ let s=nameAt(pc); return `<div class="cell name ${s?"":"empty"} ${selectedPC===pc?"selected":""}" onclick="selectSeat(${pc})">${s?`<div><div>${s.name}</div><div style="font-size:12px;color:#60758c;font-weight:800;margin-top:3px">${s.no}번</div></div>`:"빈자리"}</div>`;
 }
 function pcCell(pc){return `<div class="pc">${pc}</div>`}
 function renderLab(){

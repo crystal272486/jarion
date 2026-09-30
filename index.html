@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>JariON v0.5 - 우리 학교 스마트 자리배치</title>
+<title>JariON v0.7.1 - 우리 학교 스마트 자리배치</title>
 <style>
 :root{--navy:#173b67;--blue:#2176d2;--line:#cfd8e3;--bg:#f4f7fb;--green:#1f9d61;--red:#e65353;--ink:#172033}
 *{box-sizing:border-box} body{margin:0;font-family:"Malgun Gothic","Noto Sans KR",sans-serif;background:var(--bg);color:var(--ink)}
@@ -36,10 +36,6 @@ main{display:grid;grid-template-columns:300px 1fr;gap:14px;padding:14px;min-heig
 .teacher-only{display:none}.teacher .teacher-only{display:inline-flex}
 @media(max-width:900px){main{grid-template-columns:1fr}.sidebar{order:2}.lab{column-gap:4%}.layout-wrap{padding:15px}.cell,.pc{min-height:45px;font-size:14px}.pc{font-size:16px}.blackboard{width:70%}}
 @media print{header,.sidebar,.toolbar,.actions,.summary{display:none!important}main{display:block;padding:0}.content,.panel{border:0;box-shadow:none}.layout-wrap{border:0;min-height:auto}}
-
-/* v0.5: 선생님이 아래(칠판)에서 바라보는 방향으로 좌우 반전 */
-.lab{transform:scaleX(-1)}
-.lab .block{transform:scaleX(-1)}
 </style>
 </head>
 <body>
@@ -151,7 +147,13 @@ const seed = {
 
 // v0.3: 사진 명렬표의 실제 학생번호(1~ / 51~) 반영
 const rosterNumbers={"2-1": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64], "2-2": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64], "2-3": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65], "2-4": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64], "4-1": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63], "4-2": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63], "4-3": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62], "4-4": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63], "5-1": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63], "5-2": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63], "5-3": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62], "5-4": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62]};
-let data = JSON.parse(localStorage.getItem("jarionData_v05")||"null");
+let data = JSON.parse(localStorage.getItem("jarionData_v07")||"null");
+if(!data){
+ try{ data=JSON.parse(localStorage.getItem("jarionData_v06")||"null"); }catch(e){}
+}
+if(!data){
+ try{ data=JSON.parse(localStorage.getItem("jarionData_v05")||"null"); }catch(e){}
+}
 if(!data){
  try{ data=JSON.parse(localStorage.getItem("jarionData_v04")||"null"); }catch(e){}
 }
@@ -161,7 +163,7 @@ if(!data){
 if(!data){
  data={rosters:{},assignments:{},constraints:{},history:{}};
  for(const [k,arr] of Object.entries(seed)) data.rosters[k]=arr.map((x,i)=>({id:k+"-"+rosterNumbers[k][i],no:rosterNumbers[k][i],name:x[0],status:x[1]}));
- localStorage.setItem("jarionData_v05",JSON.stringify(data));
+ localStorage.setItem("jarionData_v07",JSON.stringify(data));
 }
 let current="4-1", teacher=false, selectedPC=null;
 
@@ -182,11 +184,11 @@ function addRoom(){
  data.currentRoom=id;persist();render();
  alert("교실이 추가되었습니다.\n현재 v0.5에서는 교실 목록/저장 구조를 먼저 만들었고, 새 교실의 자리 모양 편집은 다음 단계에서 연결합니다.");
 }
-const seatOrder=[28,26,27,25,30,29,6,12,5,11,4,10,3,9,2,8,1,7,18,24,17,23,16,22,15,21,14,20,13,19];
+const seatOrder=[28,26,27,25,30,29,24,18,23,17,22,16,21,15,20,14,19,13,12,6,11,5,10,4,9,3,8,2,7,1];
 const coords={};
 seatOrder.forEach((p,i)=>coords[p]=i);
 
-function persist(){localStorage.setItem("jarionData_v05",JSON.stringify(data))}
+function persist(){localStorage.setItem("jarionData_v07",JSON.stringify(data))}
 function activeStudents(){return (data.rosters[current]||[]).filter(s=>s.status==="재학")}
 function assignment(){if(!data.assignments[current])data.assignments[current]={};return data.assignments[current]}
 function classLabel(){let [g,c]=current.split("-");return `${g}학년 ${c}반`}
@@ -209,8 +211,8 @@ function renderLab(){
  topLeft.innerHTML=seatName(28)+pcCell(28)+pcCell(26)+seatName(26)+seatName(27)+pcCell(27)+pcCell(25)+seatName(25);
  topRight.innerHTML=seatName(30)+pcCell(30)+`<div class="cell"></div>`+seatName(29)+pcCell(29)+`<div class="cell"></div>`;
  let ll="",rr="";
- [[6,12],[5,11],[4,10],[3,9],[2,8],[1,7]].forEach(([a,b])=>ll+=seatName(a)+pcCell(a)+pcCell(b)+seatName(b));
- [[18,24],[17,23],[16,22],[15,21],[14,20],[13,19]].forEach(([a,b])=>rr+=seatName(a)+pcCell(a)+pcCell(b)+seatName(b));
+ [[24,18],[23,17],[22,16],[21,15],[20,14],[19,13]].forEach(([a,b])=>ll+=seatName(a)+pcCell(a)+pcCell(b)+seatName(b));
+ [[12,6],[11,5],[10,4],[9,3],[8,2],[7,1]].forEach(([a,b])=>rr+=seatName(a)+pcCell(a)+pcCell(b)+seatName(b));
  lowerLeft.innerHTML=ll;lowerRight.innerHTML=rr;
 }
 function renderSummary(){
@@ -224,8 +226,8 @@ function snapshot(){data.history[current]=JSON.parse(JSON.stringify(assignment()
 function shuffle(a){for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function adjacent(a,b){
  // physical adjacency: same immediate row-pair or vertical neighbor in same physical column
- const groups=[[28,27],[26,25],[30,29],[6,5,4,3,2,1],[12,11,10,9,8,7],[18,17,16,15,14,13],[24,23,22,21,20,19]];
- if([[28,26],[27,25],[6,12],[5,11],[4,10],[3,9],[2,8],[1,7],[18,24],[17,23],[16,22],[15,21],[14,20],[13,19]].some(x=>x.includes(a)&&x.includes(b)))return true;
+ const groups=[[28,27],[26,25],[30,29],[24,23,22,21,20,19],[18,17,16,15,14,13],[12,11,10,9,8,7],[6,5,4,3,2,1]];
+ if([[28,26],[27,25],[30,29],[24,18],[23,17],[22,16],[21,15],[20,14],[19,13],[12,6],[11,5],[10,4],[9,3],[8,2],[7,1]].some(x=>x.includes(a)&&x.includes(b)))return true;
  return groups.some(g=>{let ia=g.indexOf(a),ib=g.indexOf(b);return ia>=0&&ib>=0&&Math.abs(ia-ib)===1});
 }
 function constraintsOK(map){

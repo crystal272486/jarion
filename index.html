@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>JariON v0.9 - 우리 학교 스마트 자리배치</title>
+<title>JariON v0.9.1 - 우리 학교 스마트 자리배치</title>
 <style>
 :root{--navy:#173b67;--blue:#2176d2;--line:#cfd8e3;--bg:#f4f7fb;--green:#1f9d61;--red:#e65353;--ink:#172033}
 *{box-sizing:border-box} body{margin:0;font-family:"Malgun Gothic","Noto Sans KR",sans-serif;background:var(--bg);color:var(--ink)}
@@ -144,7 +144,7 @@ main{display:grid;grid-template-columns:300px 1fr;gap:14px;padding:14px;min-heig
       <label>자리배치 형태
         <select id="roomLayoutType" style="width:100%;padding:10px;margin-top:5px" onchange="toggleRoomLayoutFields()">
           <option value="grid">일반 책상형(행 × 열)</option>
-          <option value="class30">1반형(사진 배치 · 30자리)</option>
+          <option value="class30">특별교실형(30자리)</option>
           <option value="computer">컴퓨터실 고정형</option>
         </select>
       </label>
@@ -152,7 +152,7 @@ main{display:grid;grid-template-columns:300px 1fr;gap:14px;padding:14px;min-heig
         <label>행<input id="roomRows" type="number" min="1" max="10" value="5" style="width:100%;padding:10px;margin-top:5px"></label>
         <label>열<input id="roomCols" type="number" min="1" max="10" value="6" style="width:100%;padding:10px;margin-top:5px"></label>
       </div>
-      <small style="color:#6c7b8d">일반교실은 행·열을 바꿔 자리 수를 설정할 수 있습니다. 컴퓨터실은 현재 확정된 PC 1~30 위치가 고정됩니다.</small>
+      <small style="color:#6c7b8d">일반교실형과 특별교실형은 언제든 변경할 수 있습니다. 배치 유형을 바꾸면 해당 교실의 현재 자리배치만 초기화됩니다. 컴퓨터실은 PC 1~30 위치가 고정됩니다.</small>
     </div>
   </div>
   <div class="dialog-actions" style="justify-content:space-between">
@@ -200,7 +200,8 @@ const seed = {
 
 // v0.3: 사진 명렬표의 실제 학생번호(1~ / 51~) 반영
 const rosterNumbers={"2-1": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64], "2-2": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64], "2-3": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65], "2-4": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64], "4-1": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63], "4-2": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63], "4-3": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62], "4-4": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63], "5-1": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63], "5-2": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63], "5-3": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62], "5-4": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62]};
-let data = JSON.parse(localStorage.getItem("jarionData_v09")||"null");
+let data = JSON.parse(localStorage.getItem("jarionData_v091")||"null");
+if(!data){try{data=JSON.parse(localStorage.getItem("jarionData_v09")||"null")}catch(e){}}
 if(!data){try{data=JSON.parse(localStorage.getItem("jarionData_v08")||"null")}catch(e){}}
 if(!data){try{data=JSON.parse(localStorage.getItem("jarionData_v07")||"null")}catch(e){}}
 if(!data){
@@ -218,7 +219,7 @@ if(!data){
 if(!data){
  data={rosters:{},assignments:{},constraints:{},history:{}};
  for(const [k,arr] of Object.entries(seed)) data.rosters[k]=arr.map((x,i)=>({id:k+"-"+rosterNumbers[k][i],no:rosterNumbers[k][i],name:x[0],status:x[1]}));
- localStorage.setItem("jarionData_v09",JSON.stringify(data));
+ localStorage.setItem("jarionData_v091",JSON.stringify(data));
 }
 let current="4-1", teacher=false, selectedPC=null;
 
@@ -238,9 +239,9 @@ function renderRooms(){
 function setRoom(id){data.currentRoom=id;selectedPC=null;persist();render()}
 function addRoom(){
  if(!teacher)return;
- const name=prompt("추가할 교실 이름을 입력하세요.\n예: 1반교실, 과학실, 영어실");
+ const name=prompt("추가할 교실 이름을 입력하세요.\n예: 과학실, 영어실, 특별실");
  if(!name||!name.trim())return;
- const kind=prompt("배치 유형을 입력하세요.\n1 = 일반 책상형(행×열)\n2 = 사진과 같은 30자리 교실형","2");
+ const kind=prompt("배치 유형을 입력하세요.\n1 = 일반 책상형(행×열)\n2 = 특별교실형(30자리)","2");
  const id="room_"+Date.now();
  const type=kind==="2"?"class30":"grid";
  data.rooms.push({id,name:name.trim(),type,rows:type==="grid"?5:0,cols:type==="grid"?6:0});
@@ -261,18 +262,25 @@ function toggleRoomLayoutFields(){
  gridFields.style.display=roomLayoutType.value==="grid"?"grid":"none";
 }
 function saveRoomSettings(){
- const r=currentRoom(), oldCount=(r.rows||0)*(r.cols||0);
- r.name=roomNameEdit.value.trim()||r.name;
- if(r.id!=="computer"){
-   r.type=roomLayoutType.value==="class30"?"class30":"grid";
-   if(r.type==="grid"){
-     r.rows=Math.max(1,Math.min(10,Number(roomRows.value)||5));
-     r.cols=Math.max(1,Math.min(10,Number(roomCols.value)||6));
-   }else{r.rows=0;r.cols=0}
-   const max=r.type==="class30"?30:r.rows*r.cols, a=assignment();
-   Object.keys(a).forEach(k=>{if(Number(k)>max)delete a[k]});
+ const r=currentRoom();
+ const newName=roomNameEdit.value.trim()||r.name;
+ if(r.id==="computer"){
+   r.name=newName; persist();closeModal("roomModal");render();return;
  }
- persist();closeModal("roomModal");render();
+ const newType=roomLayoutType.value==="class30"?"class30":"grid";
+ const newRows=newType==="grid"?Math.max(1,Math.min(10,Number(roomRows.value)||5)):0;
+ const newCols=newType==="grid"?Math.max(1,Math.min(10,Number(roomCols.value)||6)):0;
+ const typeChanged=r.type!==newType;
+ const shapeChanged=!typeChanged && newType==="grid" && (r.rows!==newRows || r.cols!==newCols);
+ const hasAssignments=Object.values(data.roomAssignments[r.id]||{}).some(a=>a && Object.keys(a).length);
+ if((typeChanged||shapeChanged) && hasAssignments){
+   const what=typeChanged?"배치 유형":"행·열";
+   if(!confirm(`${what}을 변경하면 '${r.name}'의 현재 자리배치가 모두 초기화됩니다.\n학생 명렬표는 삭제되지 않습니다.\n\n변경할까요?`))return;
+   data.roomAssignments[r.id]={};
+ }
+ r.name=newName;
+ r.type=newType; r.rows=newRows; r.cols=newCols;
+ persist();closeModal("roomModal");selectedPC=null;render();
 }
 function deleteRoom(){
  const r=currentRoom(); if(r.id==="computer")return;
@@ -285,7 +293,7 @@ const seatOrder=[28,26,27,25,30,29,24,18,23,17,22,16,21,15,20,14,19,13,12,6,11,5
 const coords={};
 seatOrder.forEach((p,i)=>coords[p]=i);
 
-function persist(){localStorage.setItem("jarionData_v09",JSON.stringify(data))}
+function persist(){localStorage.setItem("jarionData_v091",JSON.stringify(data))}
 function activeStudents(){return (data.rosters[current]||[]).filter(s=>s.status==="재학")}
 function assignment(){
  const rid=data.currentRoom;

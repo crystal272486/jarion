@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>JariON v0.7.2 - 우리 학교 스마트 자리배치</title>
+<title>JariON v0.7.3 - 우리 학교 스마트 자리배치</title>
 <style>
 :root{--navy:#173b67;--blue:#2176d2;--line:#cfd8e3;--bg:#f4f7fb;--green:#1f9d61;--red:#e65353;--ink:#172033}
 *{box-sizing:border-box} body{margin:0;font-family:"Malgun Gothic","Noto Sans KR",sans-serif;background:var(--bg);color:var(--ink)}
@@ -248,9 +248,20 @@ function autoAssign(){
  let ids=students.map(s=>s.id);
  let best={};
  for(let t=0;t<500;t++){
-   let arr=current.startsWith("2-")?ids.slice():shuffle(ids.slice());
-   let map={};seatOrder.forEach((pc,i)=>{if(arr[i])map[pc]=arr[i]});
-   if(constraintsOK(map)){best=map;break} best=map;
+   let map={};
+   if(current.startsWith("2-")){
+     // 2학년: 기존 원칙대로 학생번호/명렬 순서 + 고정 PC 순서
+     let arr=ids.slice();
+     seatOrder.forEach((pc,i)=>{if(arr[i])map[pc]=arr[i]});
+   }else{
+     // 4·5학년: 학생 순서뿐 아니라 30개 PC 위치 자체도 매번 랜덤.
+     // 따라서 학생 수가 30명 미만이면 빈자리 위치도 매번 달라진다.
+     let randomStudents=shuffle(ids.slice());
+     let randomPCs=shuffle(seatOrder.slice());
+     randomStudents.forEach((id,i)=>{map[randomPCs[i]]=id});
+   }
+   if(constraintsOK(map)){best=map;break}
+   best=map;
  }
  data.assignments[current]=best;persist();selectedPC=null;render();
 }

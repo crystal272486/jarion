@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>JariON v0.7.1 - 우리 학교 스마트 자리배치</title>
+<title>JariON v0.7.2 - 우리 학교 스마트 자리배치</title>
 <style>
 :root{--navy:#173b67;--blue:#2176d2;--line:#cfd8e3;--bg:#f4f7fb;--green:#1f9d61;--red:#e65353;--ink:#172033}
 *{box-sizing:border-box} body{margin:0;font-family:"Malgun Gothic","Noto Sans KR",sans-serif;background:var(--bg);color:var(--ink)}
@@ -36,6 +36,12 @@ main{display:grid;grid-template-columns:300px 1fr;gap:14px;padding:14px;min-heig
 .teacher-only{display:none}.teacher .teacher-only{display:inline-flex}
 @media(max-width:900px){main{grid-template-columns:1fr}.sidebar{order:2}.lab{column-gap:4%}.layout-wrap{padding:15px}.cell,.pc{min-height:45px;font-size:14px}.pc{font-size:16px}.blackboard{width:70%}}
 @media print{header,.sidebar,.toolbar,.actions,.summary{display:none!important}main{display:block;padding:0}.content,.panel{border:0;box-shadow:none}.layout-wrap{border:0;min-height:auto}}
+
+/* v0.7.2: 명렬표 관리에서 재학 외 상태를 색상으로 구분 */
+#rosterModal tr.status-transfer td{background:#fdecec;}
+#rosterModal tr.status-abroad td{background:#fff3cd;}
+#rosterModal tr.status-transfer input,#rosterModal tr.status-transfer select{background:#fff7f7;}
+#rosterModal tr.status-abroad input,#rosterModal tr.status-abroad select{background:#fffaf0;}
 </style>
 </head>
 <body>
@@ -297,13 +303,19 @@ function toggleTeacher(){
 function openRosterEditor(){
  let r=data.rosters[current]||[];
  editRoster.innerHTML=`<table class="edit-table"><thead><tr><th style="width:70px">번호</th><th>이름</th><th style="width:110px">상태</th></tr></thead><tbody>`+
- r.map((s,i)=>`<tr><td><input value="${s.no}" data-i="${i}" data-f="no"></td><td><input value="${s.name}" data-i="${i}" data-f="name"></td><td><select data-i="${i}" data-f="status"><option ${s.status==="재학"?"selected":""}>재학</option><option ${s.status==="전학"?"selected":""}>전학</option><option ${s.status==="유학"?"selected":""}>유학</option></select></td></tr>`).join("")+
+ r.map((s,i)=>`<tr class="${s.status==="전학"?"status-transfer":s.status==="유학"?"status-abroad":""}"><td><input value="${s.no}" data-i="${i}" data-f="no"></td><td><input value="${s.name}" data-i="${i}" data-f="name"></td><td><select data-i="${i}" data-f="status" onchange="paintRosterStatus(this)"><option ${s.status==="재학"?"selected":""}>재학</option><option ${s.status==="전학"?"selected":""}>전학</option><option ${s.status==="유학"?"selected":""}>유학</option></select></td></tr>`).join("")+
  `</tbody></table><button class="ghost" style="margin-top:10px" onclick="addRosterRow()">+ 학생 추가</button>`;
  rosterModal.classList.add("open");
 }
+function paintRosterStatus(sel){
+ const tr=sel.closest("tr"); if(!tr)return;
+ tr.classList.remove("status-transfer","status-abroad");
+ if(sel.value==="전학")tr.classList.add("status-transfer");
+ if(sel.value==="유학")tr.classList.add("status-abroad");
+}
 function addRosterRow(){
  let tbody=editRoster.querySelector("tbody"),i=tbody.children.length;
- tbody.insertAdjacentHTML("beforeend",`<tr><td><input value="${i+1}" data-i="${i}" data-f="no"></td><td><input value="" data-i="${i}" data-f="name"></td><td><select data-i="${i}" data-f="status"><option>재학</option><option>전학</option><option>유학</option></select></td></tr>`);
+ tbody.insertAdjacentHTML("beforeend",`<tr><td><input value="${i+1}" data-i="${i}" data-f="no"></td><td><input value="" data-i="${i}" data-f="name"></td><td><select data-i="${i}" data-f="status" onchange="paintRosterStatus(this)"><option>재학</option><option>전학</option><option>유학</option></select></td></tr>`);
 }
 function saveRoster(){
  let rows=[...editRoster.querySelectorAll("tbody tr")], old=data.rosters[current]||[];

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>JariON v0.3 - 우리 학교 스마트 자리배치</title>
+<title>JariON v0.5 - 우리 학교 스마트 자리배치</title>
 <style>
 :root{--navy:#173b67;--blue:#2176d2;--line:#cfd8e3;--bg:#f4f7fb;--green:#1f9d61;--red:#e65353;--ink:#172033}
 *{box-sizing:border-box} body{margin:0;font-family:"Malgun Gothic","Noto Sans KR",sans-serif;background:var(--bg);color:var(--ink)}
@@ -36,6 +36,10 @@ main{display:grid;grid-template-columns:300px 1fr;gap:14px;padding:14px;min-heig
 .teacher-only{display:none}.teacher .teacher-only{display:inline-flex}
 @media(max-width:900px){main{grid-template-columns:1fr}.sidebar{order:2}.lab{column-gap:4%}.layout-wrap{padding:15px}.cell,.pc{min-height:45px;font-size:14px}.pc{font-size:16px}.blackboard{width:70%}}
 @media print{header,.sidebar,.toolbar,.actions,.summary{display:none!important}main{display:block;padding:0}.content,.panel{border:0;box-shadow:none}.layout-wrap{border:0;min-height:auto}}
+
+/* v0.5: 선생님이 아래(칠판)에서 바라보는 방향으로 좌우 반전 */
+.lab{transform:scaleX(-1)}
+.lab .block{transform:scaleX(-1)}
 </style>
 </head>
 <body>
@@ -49,6 +53,11 @@ main{display:grid;grid-template-columns:300px 1fr;gap:14px;padding:14px;min-heig
 <main>
 <aside class="panel sidebar">
   <div>
+    <div class="section-title">교실 선택</div>
+    <div style="display:flex;gap:7px;margin-bottom:12px">
+      <select id="roomSelect" onchange="setRoom(this.value)" style="flex:1;padding:9px;border:1px solid #d4deea;border-radius:8px"></select>
+      <button class="primary teacher-only" onclick="addRoom()">+ 교실 추가</button>
+    </div>
     <div class="section-title">학년 · 반 선택</div>
     <div id="classGrid" class="classgrid"></div>
   </div>
@@ -75,17 +84,18 @@ main{display:grid;grid-template-columns:300px 1fr;gap:14px;padding:14px;min-heig
     <span id="meta" class="meta"></span>
     <div class="spacer"></div>
     <button class="ghost teacher-only" onclick="undo()">↶ 이전 배치</button>
+    <button class="ghost teacher-only" onclick="openForceAdjust()">↔ 자리 강제조정</button>
     <button class="primary teacher-only" onclick="saveCurrent()">💾 현재 배치 저장</button>
   </div>
 
   <div class="layout-wrap">
-    <div class="blackboard">칠판</div>
     <div class="lab">
       <div id="topLeft" class="block top-left"></div>
       <div id="topRight" class="block top-right"></div>
       <div id="lowerLeft" class="block lower"></div>
       <div id="lowerRight" class="block lower"></div>
     </div>
+    <div class="blackboard" style="margin-top:24px;margin-bottom:0">칠판 · 선생님 위치</div>
     <div class="actions teacher-only">
       <button id="autoBtn" class="primary" onclick="autoAssign()">🎲 자동 자리배치</button>
       <button class="danger" onclick="clearSeats()">자리 비우기</button>
@@ -100,6 +110,19 @@ main{display:grid;grid-template-columns:300px 1fr;gap:14px;padding:14px;min-heig
   <h2>명렬표 관리</h2>
   <div id="editRoster"></div>
   <div class="dialog-actions"><button class="ghost" onclick="closeModal('rosterModal')">취소</button><button class="primary" onclick="saveRoster()">저장</button></div>
+</div></div>
+
+<div id="forceModal" class="modal"><div class="dialog">
+  <h2>자리 강제조정 <small style="font-size:13px;color:#738399">(관리자 전용)</small></h2>
+  <p style="color:#627286">학생과 이동할 PC 번호를 선택하세요. 대상 PC에 학생이 있으면 두 학생의 자리를 서로 교환합니다.</p>
+  <div style="display:grid;grid-template-columns:1fr 140px;gap:10px">
+    <select id="forceStudent" style="padding:10px"></select>
+    <select id="forcePC" style="padding:10px"></select>
+  </div>
+  <div class="dialog-actions">
+    <button class="ghost" onclick="closeModal('forceModal')">취소</button>
+    <button class="primary" onclick="applyForceAdjust()">강제 이동</button>
+  </div>
 </div></div>
 
 <div id="constraintModal" class="modal"><div class="dialog">
@@ -128,19 +151,42 @@ const seed = {
 
 // v0.3: 사진 명렬표의 실제 학생번호(1~ / 51~) 반영
 const rosterNumbers={"2-1": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64], "2-2": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64], "2-3": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65], "2-4": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64], "4-1": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63], "4-2": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63], "4-3": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62], "4-4": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63], "5-1": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63], "5-2": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63], "5-3": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62], "5-4": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62]};
-let data = JSON.parse(localStorage.getItem("jarionData_v03")||"null");
+let data = JSON.parse(localStorage.getItem("jarionData_v05")||"null");
+if(!data){
+ try{ data=JSON.parse(localStorage.getItem("jarionData_v04")||"null"); }catch(e){}
+}
+if(!data){
+ try{ data=JSON.parse(localStorage.getItem("jarionData_v03")||"null"); }catch(e){}
+}
 if(!data){
  data={rosters:{},assignments:{},constraints:{},history:{}};
  for(const [k,arr] of Object.entries(seed)) data.rosters[k]=arr.map((x,i)=>({id:k+"-"+rosterNumbers[k][i],no:rosterNumbers[k][i],name:x[0],status:x[1]}));
- localStorage.setItem("jarionData_v03",JSON.stringify(data));
+ localStorage.setItem("jarionData_v05",JSON.stringify(data));
 }
 let current="4-1", teacher=false, selectedPC=null;
 
+// 교실은 학생 명렬표와 분리해 관리한다. 컴퓨터실은 PC 번호/위치 고정.
+if(!data.rooms) data.rooms=[{id:"computer",name:"컴퓨터실",type:"computer"}];
+if(!data.currentRoom) data.currentRoom="computer";
+function currentRoom(){return data.rooms.find(r=>r.id===data.currentRoom)||data.rooms[0]}
+function renderRooms(){
+ roomSelect.innerHTML=data.rooms.map(r=>`<option value="${r.id}" ${r.id===data.currentRoom?"selected":""}>${r.name}</option>`).join("");
+}
+function setRoom(id){data.currentRoom=id;persist();render()}
+function addRoom(){
+ if(!teacher)return;
+ const name=prompt("추가할 교실 이름을 입력하세요.\n예: 일반교실, 과학실, 영어실");
+ if(!name||!name.trim())return;
+ const id="room_"+Date.now();
+ data.rooms.push({id,name:name.trim(),type:"general"});
+ data.currentRoom=id;persist();render();
+ alert("교실이 추가되었습니다.\n현재 v0.5에서는 교실 목록/저장 구조를 먼저 만들었고, 새 교실의 자리 모양 편집은 다음 단계에서 연결합니다.");
+}
 const seatOrder=[28,26,27,25,30,29,6,12,5,11,4,10,3,9,2,8,1,7,18,24,17,23,16,22,15,21,14,20,13,19];
 const coords={};
 seatOrder.forEach((p,i)=>coords[p]=i);
 
-function persist(){localStorage.setItem("jarionData_v03",JSON.stringify(data))}
+function persist(){localStorage.setItem("jarionData_v05",JSON.stringify(data))}
 function activeStudents(){return (data.rosters[current]||[]).filter(s=>s.status==="재학")}
 function assignment(){if(!data.assignments[current])data.assignments[current]={};return data.assignments[current]}
 function classLabel(){let [g,c]=current.split("-");return `${g}학년 ${c}반`}
@@ -170,10 +216,10 @@ function renderLab(){
 function renderSummary(){
  let used=Object.values(assignment()).filter(Boolean).length;
  summary.innerHTML=`<div class="pill">PC 30대</div><div class="pill">배치 ${used}명</div><div class="pill">빈자리 ${30-used}개</div>`;
- meta.textContent=`${classLabel()} · ${current.startsWith("2-")?"번호순":"랜덤"} · 전학/유학 제외`;
+ meta.textContent=`${currentRoom().name} · ${classLabel()} · ${current.startsWith("2-")?"번호순":"랜덤"} · 전학/유학 제외`;
  autoBtn.textContent=current.startsWith("2-")?"🔢 번호순 배치하기":"🎲 랜덤 배치하기";
 }
-function render(){document.body.classList.toggle("teacher",teacher);renderClasses();renderRoster();renderLab();renderSummary()}
+function render(){document.body.classList.toggle("teacher",teacher);renderRooms();renderClasses();renderRoster();renderLab();renderSummary()}
 function snapshot(){data.history[current]=JSON.parse(JSON.stringify(assignment()))}
 function shuffle(a){for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function adjacent(a,b){
@@ -199,6 +245,37 @@ function autoAssign(){
    if(constraintsOK(map)){best=map;break} best=map;
  }
  data.assignments[current]=best;persist();selectedPC=null;render();
+}
+function openForceAdjust(){
+ if(!teacher)return;
+ const students=activeStudents().slice().sort((a,b)=>Number(a.no)-Number(b.no));
+ forceStudent.innerHTML=students.map(st=>{
+   const pc=Object.keys(assignment()).find(k=>assignment()[k]===st.id);
+   return `<option value="${st.id}">${st.no}번 ${st.name}${pc?` · 현재 PC ${pc}`:" · 미배치"}</option>`;
+ }).join("");
+ forcePC.innerHTML=Array.from({length:30},(_,i)=>i+1).map(pc=>{
+   const st=nameAt(pc);
+   return `<option value="${pc}">PC ${pc}${st?` · ${st.no}번 ${st.name}`:" · 빈자리"}</option>`;
+ }).join("");
+ forceModal.classList.add("open");
+}
+function applyForceAdjust(){
+ const sid=forceStudent.value, target=Number(forcePC.value);
+ if(!sid||!target)return;
+ const a=assignment();
+ const fromKey=Object.keys(a).find(k=>a[k]===sid);
+ const from=fromKey?Number(fromKey):null;
+ if(from===target){closeModal("forceModal");return;}
+ snapshot();
+ const targetStudent=a[target];
+ if(from!==null){
+   if(targetStudent)a[from]=targetStudent;
+   else delete a[from];
+ } else if(targetStudent){
+   // selected student was unassigned; target occupant becomes unassigned.
+ }
+ a[target]=sid;
+ selectedPC=null;persist();closeModal("forceModal");render();
 }
 function selectSeat(pc){
  if(!teacher)return;

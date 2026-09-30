@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>JariON v0.9.4 - 우리 학교 스마트 자리배치</title>
+<title>JariON v0.9.5 - 우리 학교 스마트 자리배치</title>
 <style>
 :root{--navy:#173b67;--blue:#2176d2;--line:#cfd8e3;--bg:#f4f7fb;--green:#1f9d61;--red:#e65353;--ink:#172033}
 *{box-sizing:border-box} body{margin:0;font-family:"Malgun Gothic","Noto Sans KR",sans-serif;background:var(--bg);color:var(--ink)}
@@ -68,7 +68,7 @@ main{display:grid;grid-template-columns:300px 1fr;gap:14px;padding:14px;min-heig
 /* v0.9.3: Edge에서도 안정적인 교실 선택 세로 UI */
 .room-controls{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;width:100%}
 .room-controls #roomSelect{box-sizing:border-box;width:100%;height:44px;padding:0 12px;border:1px solid #d4deea;border-radius:10px;background:#fff;font-size:15px;color:#132f52}
-.room-controls .room-action{box-sizing:border-box;width:100%;height:42px;padding:0 12px;display:flex;align-items:center;justify-content:center;white-space:nowrap;word-break:keep-all;line-height:1.2;font-size:14px;border-radius:10px}
+.room-controls .room-action.teacher-only{display:none!important}.teacher .room-controls .room-action.teacher-only{display:flex!important}\n.room-controls .room-action{box-sizing:border-box;width:100%;height:42px;padding:0 12px;display:flex;align-items:center;justify-content:center;white-space:nowrap;word-break:keep-all;line-height:1.2;font-size:14px;border-radius:10px}
 
 /* v0.9.4 교사모드 상태 표시 */
 #teacherModeBtn{min-width:122px;white-space:nowrap}
@@ -92,8 +92,8 @@ body.teacher .teacher-mode-badge{display:inline-flex}
     <div class="section-title">교실 선택</div>
     <div class="room-controls">
       <select id="roomSelect" onchange="setRoom(this.value)"></select>
-      <button class="primary teacher-only room-action" onclick="addRoom()">＋ 교실 추가</button>
-      <button class="ghost teacher-only room-action" onclick="manageRoom()">✏ 교실명/배치 수정</button>
+      <button class="primary teacher-only room-action" data-teacher-control="1" onclick="addRoom()">＋ 교실 추가</button>
+      <button class="ghost teacher-only room-action" data-teacher-control="1" onclick="manageRoom()">✏ 교실명/배치 수정</button>
     </div>
     <div class="section-title">학년 · 반 선택</div>
     <div id="classGrid" class="classgrid"></div>
@@ -213,7 +213,8 @@ const seed = {
 
 // v0.3: 사진 명렬표의 실제 학생번호(1~ / 51~) 반영
 const rosterNumbers={"2-1": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64], "2-2": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64], "2-3": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65], "2-4": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64], "4-1": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63], "4-2": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63], "4-3": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62], "4-4": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63], "5-1": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63], "5-2": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63], "5-3": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62], "5-4": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62]};
-let data = JSON.parse(localStorage.getItem("jarionData_v094")||"null");
+let data = JSON.parse(localStorage.getItem("jarionData_v095")||"null");
+if(!data){try{data=JSON.parse(localStorage.getItem("jarionData_v094")||"null")}catch(e){}}
 if(!data){try{data=JSON.parse(localStorage.getItem("jarionData_v093")||"null")}catch(e){}}
 if(!data){try{data=JSON.parse(localStorage.getItem("jarionData_v092")||"null")}catch(e){}}
 if(!data){try{data=JSON.parse(localStorage.getItem("jarionData_v091")||"null")}catch(e){}}
@@ -235,7 +236,7 @@ if(!data){
 if(!data){
  data={rosters:{},assignments:{},constraints:{},history:{}};
  for(const [k,arr] of Object.entries(seed)) data.rosters[k]=arr.map((x,i)=>({id:k+"-"+rosterNumbers[k][i],no:rosterNumbers[k][i],name:x[0],status:x[1]}));
- localStorage.setItem("jarionData_v094",JSON.stringify(data));
+ localStorage.setItem("jarionData_v095",JSON.stringify(data));
 }
 let current="4-1", teacher=false, selectedPC=null;
 
@@ -309,7 +310,7 @@ const seatOrder=[28,26,27,25,30,29,24,18,23,17,22,16,21,15,20,14,19,13,12,6,11,5
 const coords={};
 seatOrder.forEach((p,i)=>coords[p]=i);
 
-function persist(){localStorage.setItem("jarionData_v094",JSON.stringify(data))}
+function persist(){localStorage.setItem("jarionData_v095",JSON.stringify(data))}
 function activeStudents(){return (data.rosters[current]||[]).filter(s=>s.status==="재학")}
 function assignment(){
  const rid=data.currentRoom;
@@ -375,8 +376,14 @@ function renderLab(){
  meta.textContent=`${currentRoom().name} · ${classLabel()} · ${current.startsWith("2-")?"번호순":"랜덤"} · 전학/유학 제외`;
  autoBtn.textContent=current.startsWith("2-")?"🔢 번호순 배치하기":"🎲 랜덤 배치하기";
 }
+function applyTeacherVisibility(){
+ document.querySelectorAll(".teacher-only").forEach(el=>{
+   el.style.setProperty("display",teacher?"inline-flex":"none","important");
+ });
+}
 function render(){
  document.body.classList.toggle("teacher",teacher);
+ applyTeacherVisibility();
  const tbtn=document.getElementById("teacherModeBtn");
  if(tbtn){
    tbtn.textContent=teacher?"🔓 교사모드 ON":"🔒 교사모드";

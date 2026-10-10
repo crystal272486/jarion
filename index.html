@@ -526,7 +526,7 @@ function publicProjection(){
  return {rosters,rooms:data.rooms,currentRoom:'computer',roomAssignments:data.roomAssignments,assignments:{},constraints:{},history:{}};
 }
 async function refreshGuest(){
- try{const snap=await getDoc(publicRef);applyData(snap.exists()?snap.data().payload:blank());status(snap.exists()?'공개 자리표 연결됨':'공개된 자리표 없음');}
+ try{const snap=await getDoc(publicRef);applyData(snap.exists()?(typeof snap.data().payload==='string'?JSON.parse(snap.data().payload):snap.data().payload):blank());status(snap.exists()?'공개 자리표 연결됨':'공개된 자리표 없음');}
  catch(e){status('공개 조회 오류');console.error(e);}
 }
 async function saveNow(){
@@ -536,8 +536,8 @@ async function saveNow(){
    while(dirty&&teacher){
      dirty=false;
      const privatePayload=JSON.parse(JSON.stringify(data));
-     await setDoc(privateRef,{payload:privatePayload,updatedAt:new Date().toISOString()});
-     await setDoc(publicRef,{payload:publicProjection(),updatedAt:new Date().toISOString()});
+     await setDoc(privateRef,{payload:JSON.stringify(privatePayload),updatedAt:new Date().toISOString()});
+     await setDoc(publicRef,{payload:JSON.stringify(publicProjection()),updatedAt:new Date().toISOString()});
    }
    status('클라우드 저장 완료');
  }catch(e){dirty=true;status('저장 실패 - 다시 시도 필요');console.error(e);alert('클라우드 저장에 실패했습니다: '+e.message);}
@@ -575,7 +575,7 @@ window.importBackup=async(input)=>{
   }
   if(!obj.rosters||typeof obj.rosters!=='object')throw Error('JariON 명렬표 데이터가 없습니다.');
   if(!confirm('기존 백업을 불러오면 현재 클라우드 명렬표·자리배치를 덮어씁니다. 계속할까요?'))return;
-  applyData(obj);dirty=true;await saveNow();alert('백업을 클라우드에 반영했습니다.');
+  applyData(obj);dirty=true;await saveNow();if(dirty)throw Error('클라우드 저장이 완료되지 않았습니다.');alert('백업을 클라우드에 반영했습니다.');
  }catch(e){alert('백업 가져오기 실패: '+e.message);}finally{input.value='';}
 };
 onAuthStateChanged(auth,async user=>{
@@ -585,7 +585,7 @@ onAuthStateChanged(auth,async user=>{
    status('교사 데이터 불러오는 중');
    try{
      const snap=await getDoc(privateRef);
-     applyData(snap.exists()?snap.data().payload:blank());
+     applyData(snap.exists()?(typeof snap.data().payload==='string'?JSON.parse(snap.data().payload):snap.data().payload):blank());
      teacher=true;remoteReady=true;render();
      status(snap.exists()?'교사 계정 · 동기화됨':'교사 계정 · 백업 가져오기 필요');
    }catch(e){status('교사 데이터 접근 오류');alert('교사 데이터 접근 실패: '+e.message);render();}

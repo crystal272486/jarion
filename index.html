@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>JariON v0.9.5 - 우리 학교 스마트 자리배치</title>
+<title>JariON v1.0 Firebase - 우리 학교 스마트 자리배치</title>
 <style>
 :root{--navy:#173b67;--blue:#2176d2;--line:#cfd8e3;--bg:#f4f7fb;--green:#1f9d61;--red:#e65353;--ink:#172033}
 *{box-sizing:border-box} body{margin:0;font-family:"Malgun Gothic","Noto Sans KR",sans-serif;background:var(--bg);color:var(--ink)}
@@ -68,7 +68,8 @@ main{display:grid;grid-template-columns:300px 1fr;gap:14px;padding:14px;min-heig
 /* v0.9.3: Edge에서도 안정적인 교실 선택 세로 UI */
 .room-controls{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;width:100%}
 .room-controls #roomSelect{box-sizing:border-box;width:100%;height:44px;padding:0 12px;border:1px solid #d4deea;border-radius:10px;background:#fff;font-size:15px;color:#132f52}
-.room-controls .room-action.teacher-only{display:none!important}.teacher .room-controls .room-action.teacher-only{display:flex!important}\n.room-controls .room-action{box-sizing:border-box;width:100%;height:42px;padding:0 12px;display:flex;align-items:center;justify-content:center;white-space:nowrap;word-break:keep-all;line-height:1.2;font-size:14px;border-radius:10px}
+.room-controls .room-action.teacher-only{display:none!important}.teacher .room-controls .room-action.teacher-only{display:flex!important}
+.room-controls .room-action{box-sizing:border-box;width:100%;height:42px;padding:0 12px;display:flex;align-items:center;justify-content:center;white-space:nowrap;word-break:keep-all;line-height:1.2;font-size:14px;border-radius:10px}
 
 /* v0.9.4 교사모드 상태 표시 */
 #teacherModeBtn{min-width:122px;white-space:nowrap}
@@ -83,6 +84,7 @@ body.teacher .teacher-mode-badge{display:inline-flex}
   <div><div class="brand">JariON</div><div class="sub">우리 학교 스마트 자리배치</div></div>
   <div class="spacer"></div>
   <button id="teacherModeBtn" class="topbtn" onclick="toggleTeacher()">🔒 교사모드</button>
+  <span id="cloudStatus" style="font-size:12px;color:#dceaff">연결 준비 중</span>
   <button class="topbtn" onclick="window.print()">🖨 인쇄/PDF</button>
 </header>
 
@@ -105,6 +107,11 @@ body.teacher .teacher-mode-badge{display:inline-flex}
       <button class="primary" onclick="openRosterEditor()">명렬표 수정</button>
       <button class="ghost" onclick="openConstraints()">자리 조건</button>
     </div>
+  </div>
+  <div class="teacher-only" style="flex-direction:column;gap:7px">
+    <button class="ghost" onclick="document.getElementById('backupInput').click()">📂 기존 백업 가져오기</button>
+    <button class="ghost" onclick="downloadCloudBackup()">⬇ 현재 데이터 백업</button>
+    <input type="file" id="backupInput" accept=".json,application/json" style="display:none" onchange="importBackup(this)">
   </div>
   <div class="note">
     <b>배치 기준</b><br>
@@ -143,6 +150,13 @@ body.teacher .teacher-mode-badge{display:inline-flex}
 </section>
 </main>
 
+<div id="loginModal" class="modal"><div class="dialog" style="max-width:450px">
+<h2>교사 계정 로그인</h2><p style="font-size:13px;color:#52667c">Firebase에 등록한 교사 이메일과 비밀번호를 입력하세요.</p>
+<label>이메일<input id="loginEmail" type="email" autocomplete="username" style="width:100%;padding:10px;margin:7px 0 12px"></label>
+<label>비밀번호<input id="loginPassword" type="password" autocomplete="current-password" style="width:100%;padding:10px;margin:7px 0 12px"></label>
+<div id="loginError" style="font-size:13px;color:#c22"></div>
+<div class="dialog-actions"><button class="ghost" onclick="closeModal('loginModal')">취소</button><button class="primary" onclick="cloudSignIn()">로그인</button></div>
+</div></div>
 <div id="rosterModal" class="modal"><div class="dialog">
   <h2>명렬표 관리</h2>
   <div id="editRoster"></div>
@@ -196,48 +210,12 @@ body.teacher .teacher-mode-badge{display:inline-flex}
 </div></div>
 
 <script>
-const seed = {
-"2-1":[["김다은","재학"],["김민준","재학"],["김이준","재학"],["김지후","재학"],["남윤우","재학"],["박시훈","재학"],["안이탁","재학"],["윤성빈","재학"],["이노아","재학"],["이정우","재학"],["임규율","재학"],["전주환","재학"],["조윤","재학"],["홍선우","재학"],["강유하","재학"],["김규리","재학"],["김유주","재학"],["류이재","재학"],["박시온","재학"],["송민경","재학"],["오시윤","재학"],["이다현","재학"],["이윤채","재학"],["임윤아","재학"],["임하름","재학"],["전지예","재학"],["조진비","재학"],["조아라","재학"]],
-"2-2":[["강찬","재학"],["권이현","재학"],["김서준","재학"],["김재원","재학"],["마유준","재학"],["박시원","재학"],["이지후","재학"],["이준후","재학"],["이하랑","재학"],["정래원","재학"],["지정우","재학"],["최승민","재학"],["하선우","재학"],["하이트","재학"],["김소유","재학"],["김여재","재학"],["김유아","재학"],["노현서","재학"],["박서연","재학"],["박유주","재학"],["윤재아","재학"],["이시안","재학"],["이아인","재학"],["이은우","재학"],["이태이","재학"],["정연서","재학"],["최래미","재학"],["최새론","재학"]],
-"2-3":[["공서준","재학"],["문시후","재학"],["박경태","재학"],["심지훈","재학"],["염시온","재학"],["이로은","재학"],["이찬진","재학"],["이현승","재학"],["임시안","재학"],["장다은","재학"],["전이준","재학"],["정세빈","재학"],["정하진","재학"],["강지안","재학"],["곽주희","재학"],["김서원","재학"],["김서울","재학"],["박도은","전학"],["심보아","재학"],["양서연","재학"],["엄유진","재학"],["이담","재학"],["장서윤","재학"],["장아윤","재학"],["장하율","재학"],["허지아","재학"],["홍정아","재학"],["유소은","재학"]],
-"2-4":[["곽민후","재학"],["김우찬","재학"],["김주안","재학"],["유지우","재학"],["윤유진","재학"],["이수호","재학"],["이지윤","재학"],["이하람","재학"],["장예준","재학"],["전서휘","재학"],["진수현","재학"],["최다은","재학"],["최리은","재학"],["홍유찬","재학"],["김다은","재학"],["김서윤","재학"],["김소민","재학"],["김주하","재학"],["나연수","재학"],["손수아","재학"],["송가은","재학"],["심서우","재학"],["이래인","재학"],["정아람","재학"],["최설아","재학"],["최시아","재학"],["최예윤","재학"],["최지유","재학"]],
-"4-1":[["김성열","전학"],["김윤서","재학"],["김윤재","재학"],["김이안","재학"],["박서준","재학"],["소민건","재학"],["심선우","재학"],["윤서준","재학"],["이하윤","재학"],["임주영","재학"],["장준우","재학"],["한태규","재학"],["김주영","재학"],["박시율","재학"],["박주원","재학"],["서하은","재학"],["송리안","재학"],["안다윤","재학"],["우슬아","재학"],["이연희","재학"],["남궁주안","재학"],["정아인","재학"],["좌예빈","재학"],["진윤아","재학"],["차태연","재학"]],
-"4-2":[["김건우","재학"],["김주호","재학"],["김지건","재학"],["민동유","재학"],["박선우","재학"],["양서준","재학"],["이지안","재학"],["전지후","재학"],["정수호","재학"],["조한승","재학"],["최태양","재학"],["최해성","재학"],["김다희","재학"],["김설","재학"],["박시윤","재학"],["박예람","재학"],["손예원","재학"],["이서연","재학"],["이태은","재학"],["정소라","재학"],["차주원","전학"],["한채은","재학"],["함보민","재학"],["홍설","재학"],["김민솔","재학"]],
-"4-3":[["강유준","재학"],["강시윤","재학"],["김시완","재학"],["김재유","재학"],["유재원","재학"],["윤지후","전학"],["이강준","재학"],["이정빈","재학"],["이현우","재학"],["조이준","재학"],["최찬하","재학"],["이주한","재학"],["김민재","재학"],["구예림","재학"],["김사랑","재학"],["박서아","재학"],["서연우","재학"],["서지우","재학"],["신하린","재학"],["이로윤","재학"],["이미우","재학"],["이지안","재학"],["이현성","재학"],["조예슬","재학"],["최다윤","재학"]],
-"4-4":[["강윤재","전학"],["김근영","재학"],["김도준","재학"],["김태원","재학"],["어진용","재학"],["연민서","재학"],["윤수혁","재학"],["이건우","재학"],["이도윤","재학"],["이시완","재학"],["전재휘","재학"],["송이현","전학"],["엄서후","재학"],["고은","재학"],["권재이","재학"],["김민재","재학"],["장은우","재학"],["이다현","재학"],["이예지","재학"],["이유림","재학"],["장유나","재학"],["정세희","재학"],["정혜윤","재학"],["조남경","재학"],["진수아","재학"],["한주연","재학"]],
-"5-1":[["김관우","재학"],["김서준","재학"],["김준우","재학"],["김진일","재학"],["박서준","재학"],["박수현","재학"],["변윤재","재학"],["심재윤","재학"],["이찬호","재학"],["이호진","재학"],["최호준","재학"],["강수민","재학"],["구도영","재학"],["김세린","재학"],["김지안","재학"],["박시하","재학"],["서채원","재학"],["이수아","재학"],["이채율","재학"],["전하연","유학"],["정다호","재학"],["정서우","재학"],["한지윤","재학"],["허재원","재학"]],
-"5-2":[["김강휘","재학"],["김민준","재학"],["김현우","재학"],["문유권","재학"],["이시현","재학"],["이원우","재학"],["이재윤","재학"],["조이한","재학"],["조호준","재학"],["진유찬","재학"],["한승일","재학"],["강서윤","재학"],["강은유","재학"],["김민정","재학"],["김시윤","재학"],["김아린","재학"],["김유린","재학"],["김하린","재학"],["박서영","재학"],["이연두","재학"],["이진서","재학"],["조신희","재학"],["최리예","재학"],["한예린","재학"]],
-"5-3":[["강현","재학"],["김시훈","재학"],["박선호","재학"],["어수인","재학"],["오규현","재학"],["이영주","재학"],["이주한","재학"],["이지후","재학"],["이찬민","재학"],["임윤찬","재학"],["조현성","재학"],["고다하","재학"],["김맑음","재학"],["김민서","재학"],["김시아","재학"],["순하린","재학"],["오제이","재학"],["유예린","재학"],["이서우","재학"],["이윤슬","재학"],["조세아","재학"],["지혜나","재학"],["최선지","전학"]],
-"5-4":[["김현우","재학"],["김우빈","재학"],["문주승","재학"],["박다은","재학"],["박서준","재학"],["송정우","재학"],["신규진","재학"],["안나혁","재학"],["안성민","재학"],["이민수","재학"],["이하준","재학"],["김로하","재학"],["김민아","재학"],["김소율","재학"],["김지윤","재학"],["문서영","재학"],["백세아","재학"],["안혜린","재학"],["이루비","재학"],["이서연","재학"],["진하은","재학"],["최혜빈","재학"]]
-};
+const seed = {}; // 학생 실명은 공개 HTML에 포함하지 않습니다.
 
 // v0.3: 사진 명렬표의 실제 학생번호(1~ / 51~) 반영
 const rosterNumbers={"2-1": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64], "2-2": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64], "2-3": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65], "2-4": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64], "4-1": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63], "4-2": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63], "4-3": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62], "4-4": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63], "5-1": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63], "5-2": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63], "5-3": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62], "5-4": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62]};
-let data = JSON.parse(localStorage.getItem("jarionData_v095")||"null");
-if(!data){try{data=JSON.parse(localStorage.getItem("jarionData_v094")||"null")}catch(e){}}
-if(!data){try{data=JSON.parse(localStorage.getItem("jarionData_v093")||"null")}catch(e){}}
-if(!data){try{data=JSON.parse(localStorage.getItem("jarionData_v092")||"null")}catch(e){}}
-if(!data){try{data=JSON.parse(localStorage.getItem("jarionData_v091")||"null")}catch(e){}}
-if(!data){try{data=JSON.parse(localStorage.getItem("jarionData_v09")||"null")}catch(e){}}
-if(!data){try{data=JSON.parse(localStorage.getItem("jarionData_v08")||"null")}catch(e){}}
-if(!data){try{data=JSON.parse(localStorage.getItem("jarionData_v07")||"null")}catch(e){}}
-if(!data){
- try{ data=JSON.parse(localStorage.getItem("jarionData_v06")||"null"); }catch(e){}
-}
-if(!data){
- try{ data=JSON.parse(localStorage.getItem("jarionData_v05")||"null"); }catch(e){}
-}
-if(!data){
- try{ data=JSON.parse(localStorage.getItem("jarionData_v04")||"null"); }catch(e){}
-}
-if(!data){
- try{ data=JSON.parse(localStorage.getItem("jarionData_v03")||"null"); }catch(e){}
-}
-if(!data){
- data={rosters:{},assignments:{},constraints:{},history:{}};
- for(const [k,arr] of Object.entries(seed)) data.rosters[k]=arr.map((x,i)=>({id:k+"-"+rosterNumbers[k][i],no:rosterNumbers[k][i],name:x[0],status:x[1]}));
- localStorage.setItem("jarionData_v095",JSON.stringify(data));
-}
+let data={rosters:{},assignments:{},constraints:{},history:{}};
+// 클라우드에서 공개 자리표 또는 교사 전용 데이터를 불러옵니다.
 let current="4-1", teacher=false, selectedPC=null;
 
 // v0.8: 학생 명렬표는 반별 공용, 자리배치는 [교실][반]별 완전 분리
@@ -251,7 +229,7 @@ if(!data.roomAssignments){
 data.rooms.forEach(r=>{if(!data.roomAssignments[r.id])data.roomAssignments[r.id]={}});
 function currentRoom(){return data.rooms.find(r=>r.id===data.currentRoom)||data.rooms[0]}
 function renderRooms(){
- roomSelect.innerHTML=data.rooms.map(r=>`<option value="${r.id}" ${r.id===data.currentRoom?"selected":""}>${r.name}</option>`).join("");
+ roomSelect.innerHTML=data.rooms.map(r=>`<option value="${r.id}" ${r.id===data.currentRoom?"selected":""}>${esc(r.name)}</option>`).join("");
 }
 function setRoom(id){data.currentRoom=id;selectedPC=null;persist();render()}
 function addRoom(){
@@ -278,7 +256,7 @@ function manageRoom(){
 function toggleRoomLayoutFields(){
  gridFields.style.display=roomLayoutType.value==="grid"?"grid":"none";
 }
-function saveRoomSettings(){
+function saveRoomSettings(){if(!teacher)return;
  const r=currentRoom();
  const newName=roomNameEdit.value.trim()||r.name;
  if(r.id==="computer"){
@@ -299,7 +277,7 @@ function saveRoomSettings(){
  r.type=newType; r.rows=newRows; r.cols=newCols;
  persist();closeModal("roomModal");selectedPC=null;render();
 }
-function deleteRoom(){
+function deleteRoom(){if(!teacher)return;
  const r=currentRoom(); if(r.id==="computer")return;
  if(!confirm(`'${r.name}' 교실을 삭제할까요?\n이 교실의 모든 반 자리배치도 함께 삭제됩니다.`))return;
  delete data.roomAssignments[r.id];
@@ -310,7 +288,11 @@ const seatOrder=[28,26,27,25,30,29,24,18,23,17,22,16,21,15,20,14,19,13,12,6,11,5
 const coords={};
 seatOrder.forEach((p,i)=>coords[p]=i);
 
-function persist(){localStorage.setItem("jarionData_v095",JSON.stringify(data))}
+function persist(){
+  if(!teacher)return;
+  cloudSaveQueued();
+}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function activeStudents(){return (data.rosters[current]||[]).filter(s=>s.status==="재학")}
 function assignment(){
  const rid=data.currentRoom;
@@ -327,11 +309,11 @@ function renderClasses(){
 function setClass(k){current=k;selectedPC=null;render()}
 function renderRoster(){
  const r=data.rosters[current]||[];studentCount.textContent=`(${activeStudents().length}명 배치 대상)`;
- roster.innerHTML=r.map(s=>`<div class="row"><span class="no">${s.no}</span><span>${s.name}</span><span class="status">${s.status==="재학"?"":s.status}</span></div>`).join("");
+ roster.innerHTML=r.map(s=>`<div class="row"><span class="no">${s.no}</span><span>${esc(s.name)}</span><span class="status">${s.status==="재학"?"":s.status}</span></div>`).join("");
 }
 function nameAt(pc){let id=assignment()[pc];return (data.rosters[current]||[]).find(s=>s.id===id)}
 function seatName(pc){
- let s=nameAt(pc); return `<div class="cell name ${s?"":"empty"} ${selectedPC===pc?"selected":""}" onclick="selectSeat(${pc})">${s?`<div><div>${s.name}</div><div style="font-size:12px;color:#60758c;font-weight:800;margin-top:3px">${s.no}번</div></div>`:"빈자리"}</div>`;
+ let s=nameAt(pc); return `<div class="cell name ${s?"":"empty"} ${selectedPC===pc?"selected":""}" onclick="selectSeat(${pc})">${s?`<div><div>${esc(s.name)}</div><div style="font-size:12px;color:#60758c;font-weight:800;margin-top:3px">${s.no}번</div></div>`:"빈자리"}</div>`;
 }
 function pcCell(pc){return `<div class="pc">${pc}</div>`}
 function roomSeatNumbers(){
@@ -357,7 +339,7 @@ function renderLab(){
    c=document.createElement("div");c.id="class30Room";c.className="class30-room";
    const pod=(base)=>{
      const a=base,b=base+1,c1=base+2,d=base+3,e=base+4,f=base+5;
-     const sb=n=>{let st=nameAt(n);return `<div class="studentbox ${st?"":"empty"} ${selectedPC===n?"selected":""}" onclick="selectSeat(${n})">${st?`<b>${st.name}</b><small>${st.no}번</small>`:"빈자리"}</div>`};
+     const sb=n=>{let st=nameAt(n);return `<div class="studentbox ${st?"":"empty"} ${selectedPC===n?"selected":""}" onclick="selectSeat(${n})">${st?`<b>${esc(st.name)}</b><small>${st.no}번</small>`:"빈자리"}</div>`};
      const sn=(n,alt="")=>`<div class="seatbox ${alt} ${selectedPC===n?"selected":""}" onclick="selectSeat(${n})">${n}</div>`;
      return `<div class="class30-pod">${sb(a)}${sn(a)}${sn(c1,"alt")}${sb(c1)}${sb(b)}${sn(b)}${sn(d,"alt")}${sb(d)}<div class="spacer"></div>${sn(e)}${sn(f,"alt")}<div class="spacer"></div>${sb(e)}<div class="spacer"></div><div class="spacer"></div>${sb(f)}</div>`;
    };
@@ -368,11 +350,11 @@ function renderLab(){
    g=document.createElement("div");g.id="generalRoom";g.className="general-room";document.querySelector(".lab").after(g);
    g.style.gridTemplateColumns=`repeat(${r.cols},145px)`;
    const n=r.rows*r.cols;
-   g.innerHTML=Array.from({length:n},(_,i)=>{const no=i+1,st=nameAt(no);return `<div class="general-seat ${st?"":"empty"} ${selectedPC===no?"selected":""}" onclick="selectSeat(${no})"><div class="seatno">${no}번 자리</div>${st?`<b>${st.name}</b><small>${st.no}번</small>`:"빈자리"}</div>`}).join("");
+   g.innerHTML=Array.from({length:n},(_,i)=>{const no=i+1,st=nameAt(no);return `<div class="general-seat ${st?"":"empty"} ${selectedPC===no?"selected":""}" onclick="selectSeat(${no})"><div class="seatno">${no}번 자리</div>${st?`<b>${esc(st.name)}</b><small>${st.no}번</small>`:"빈자리"}</div>`}).join("");
  }
 }function renderSummary(){
  let used=Object.values(assignment()).filter(Boolean).length;
- summary.innerHTML=`<div class="pill">PC 30대</div><div class="pill">배치 ${used}명</div><div class="pill">빈자리 ${30-used}개</div>`;
+ summary.innerHTML=`<div class="pill">전체 ${capacity}자리</div><div class="pill">배치 ${used}명</div><div class="pill">빈자리 ${capacity-used}개</div>`;
  meta.textContent=`${currentRoom().name} · ${classLabel()} · ${current.startsWith("2-")?"번호순":"랜덤"} · 전학/유학 제외`;
  autoBtn.textContent=current.startsWith("2-")?"🔢 번호순 배치하기":"🎲 랜덤 배치하기";
 }
@@ -406,7 +388,7 @@ function constraintsOK(map){
    return !px||!py||!adjacent(px,py);
  });
 }
-function autoAssign(){
+function autoAssign(){if(!teacher)return;
  snapshot();
  let students=activeStudents().slice(), ids=students.map(s=>s.id), best={};
  const r=currentRoom();
@@ -433,15 +415,15 @@ function openForceAdjust(){
  const students=activeStudents().slice().sort((a,b)=>Number(a.no)-Number(b.no));
  forceStudent.innerHTML=students.map(st=>{
    const pc=Object.keys(assignment()).find(k=>assignment()[k]===st.id);
-   return `<option value="${st.id}">${st.no}번 ${st.name}${pc?` · 현재 PC ${pc}`:" · 미배치"}</option>`;
+   return `<option value="${st.id}">${st.no}번 ${esc(st.name)}${pc?` · 현재 PC ${pc}`:" · 미배치"}</option>`;
  }).join("");
  const rr=currentRoom(),seatCount=roomSeatNumbers().length; forcePC.innerHTML=Array.from({length:seatCount},(_,i)=>i+1).map(pc=>{
    const st=nameAt(pc);
-   return `<option value="${pc}">PC ${pc}${st?` · ${st.no}번 ${st.name}`:" · 빈자리"}</option>`;
+   return `<option value="${pc}">PC ${pc}${st?` · ${st.no}번 ${esc(st.name)}`:" · 빈자리"}</option>`;
  }).join("");
  forceModal.classList.add("open");
 }
-function applyForceAdjust(){
+function applyForceAdjust(){if(!teacher)return;
  const sid=forceStudent.value, target=Number(forcePC.value);
  if(!sid||!target)return;
  const a=assignment();
@@ -459,7 +441,7 @@ function applyForceAdjust(){
  a[target]=sid;
  selectedPC=null;persist();closeModal("forceModal");render();
 }
-function selectSeat(pc){
+function selectSeat(pc){if(!teacher)return;
  if(!teacher)return;
  if(selectedPC===null){selectedPC=pc;renderLab();return}
  if(selectedPC===pc){selectedPC=null;renderLab();return}
@@ -467,17 +449,17 @@ function selectSeat(pc){
  if(!a[selectedPC])delete a[selectedPC];if(!a[pc])delete a[pc];
  selectedPC=null;persist();render();
 }
-function clearSeats(){snapshot();data.roomAssignments[data.currentRoom][current]={};persist();render()}
-function undo(){let hk=data.currentRoom+"|"+current,h=data.history[hk];if(!h)return alert("복원할 이전 배치가 없습니다.");let now=JSON.parse(JSON.stringify(assignment()));data.roomAssignments[data.currentRoom][current]=h;data.history[hk]=now;persist();render()}
-function saveCurrent(){persist();alert(classLabel()+" 현재 배치를 저장했습니다.")}
+function clearSeats(){if(!teacher)return;snapshot();data.roomAssignments[data.currentRoom][current]={};persist();render()}
+function undo(){if(!teacher)return;let hk=data.currentRoom+"|"+current,h=data.history[hk];if(!h)return alert("복원할 이전 배치가 없습니다.");let now=JSON.parse(JSON.stringify(assignment()));data.roomAssignments[data.currentRoom][current]=h;data.history[hk]=now;persist();render()}
+function saveCurrent(){if(!teacher)return;persist();alert(classLabel()+" 현재 배치를 저장했습니다.")}
 function toggleTeacher(){
  if(!teacher){let p=prompt("교사모드 PIN을 입력하세요.\\n초기 PIN: 1234");if(p!=="1234")return alert("PIN이 맞지 않습니다.");teacher=true}
  else teacher=false;render();
 }
-function openRosterEditor(){
+function openRosterEditor(){if(!teacher)return;
  let r=data.rosters[current]||[];
  editRoster.innerHTML=`<table class="edit-table"><thead><tr><th style="width:70px">번호</th><th>이름</th><th style="width:110px">상태</th></tr></thead><tbody>`+
- r.map((s,i)=>`<tr class="${s.status==="전학"?"status-transfer":s.status==="유학"?"status-abroad":""}"><td><input value="${s.no}" data-i="${i}" data-f="no"></td><td><input value="${s.name}" data-i="${i}" data-f="name"></td><td><select data-i="${i}" data-f="status" onchange="paintRosterStatus(this)"><option ${s.status==="재학"?"selected":""}>재학</option><option ${s.status==="전학"?"selected":""}>전학</option><option ${s.status==="유학"?"selected":""}>유학</option></select></td></tr>`).join("")+
+ r.map((s,i)=>`<tr class="${s.status==="전학"?"status-transfer":s.status==="유학"?"status-abroad":""}"><td><input value="${s.no}" data-i="${i}" data-f="no"></td><td><input value="${esc(s.name)}" data-i="${i}" data-f="name"></td><td><select data-i="${i}" data-f="status" onchange="paintRosterStatus(this)"><option ${s.status==="재학"?"selected":""}>재학</option><option ${s.status==="전학"?"selected":""}>전학</option><option ${s.status==="유학"?"selected":""}>유학</option></select></td></tr>`).join("")+
  `</tbody></table><button class="ghost" style="margin-top:10px" onclick="addRosterRow()">+ 학생 추가</button>`;
  rosterModal.classList.add("open");
 }
@@ -487,25 +469,128 @@ function paintRosterStatus(sel){
  if(sel.value==="전학")tr.classList.add("status-transfer");
  if(sel.value==="유학")tr.classList.add("status-abroad");
 }
-function addRosterRow(){
+function addRosterRow(){if(!teacher)return;
  let tbody=editRoster.querySelector("tbody"),i=tbody.children.length;
  tbody.insertAdjacentHTML("beforeend",`<tr><td><input value="${i+1}" data-i="${i}" data-f="no"></td><td><input value="" data-i="${i}" data-f="name"></td><td><select data-i="${i}" data-f="status" onchange="paintRosterStatus(this)"><option>재학</option><option>전학</option><option>유학</option></select></td></tr>`);
 }
-function saveRoster(){
+function saveRoster(){if(!teacher)return;
  let rows=[...editRoster.querySelectorAll("tbody tr")], old=data.rosters[current]||[];
  data.rosters[current]=rows.map((tr,i)=>{let ins=tr.querySelectorAll("input,select"),name=ins[1].value.trim();return {id:old[i]?.id||current+"-"+Date.now()+"-"+i,no:Number(ins[0].value)||i+1,name,status:ins[2].value}}).filter(x=>x.name);
  persist();closeModal("rosterModal");render();
 }
-function openConstraints(){
- let opts=activeStudents().map(s=>`<option value="${s.id}">${s.no}. ${s.name}</option>`).join("");c1.innerHTML=opts;c2.innerHTML=opts;renderConstraints();constraintModal.classList.add("open")
+function openConstraints(){if(!teacher)return;
+ let opts=activeStudents().map(s=>`<option value="${s.id}">${s.no}. ${esc(s.name)}</option>`).join("");c1.innerHTML=opts;c2.innerHTML=opts;renderConstraints();constraintModal.classList.add("open")
 }
 function renderConstraints(){
- let r=data.rosters[current]||[],name=id=>{let s=r.find(x=>x.id===id);return s?`${s.no}. ${s.name}`:"?"};
+ let r=data.rosters[current]||[],name=id=>{let s=r.find(x=>x.id===id);return s?`${s.no}. ${esc(s.name)}`:"?"};
  constraintList.innerHTML=(data.constraints[current]||[]).map((x,i)=>`<div style="display:flex;justify-content:space-between;padding:9px;border-bottom:1px solid #eee"><span>${name(x[0])} ↔ ${name(x[1])}</span><button class="danger" onclick="delConstraint(${i})">삭제</button></div>`).join("")||"<div style='color:#7b8795;padding:12px'>등록된 조건이 없습니다.</div>";
 }
-function addConstraint(){if(c1.value===c2.value)return alert("서로 다른 학생을 선택하세요.");data.constraints[current]??=[];if(!data.constraints[current].some(x=>x.includes(c1.value)&&x.includes(c2.value)))data.constraints[current].push([c1.value,c2.value]);persist();renderConstraints()}
-function delConstraint(i){data.constraints[current].splice(i,1);persist();renderConstraints()}
+function addConstraint(){if(!teacher)return;if(c1.value===c2.value)return alert("서로 다른 학생을 선택하세요.");data.constraints[current]??=[];if(!data.constraints[current].some(x=>x.includes(c1.value)&&x.includes(c2.value)))data.constraints[current].push([c1.value,c2.value]);persist();renderConstraints()}
+function delConstraint(i){if(!teacher)return;data.constraints[current].splice(i,1);persist();renderConstraints()}
 function closeModal(id){document.getElementById(id).classList.remove("open")}
 render();
+</script>
+
+<script type="module">
+import {initializeApp} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
+import {getFirestore,doc,getDoc,setDoc,onSnapshot} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
+const config={
+ apiKey:'AIzaSyCZe2NZVp_-Y4ZrOHkDtYzmELEhZkrOiWM',
+ authDomain:'jarion-school.firebaseapp.com',projectId:'jarion-school',
+ storageBucket:'jarion-school.firebasestorage.app',
+ messagingSenderId:'101685131126',appId:'1:101685131126:web:6f97158a6a2595d9706c57'
+};
+const teacherUids=new Set(['kMxdL4JiJsfGlQQliQE2LIv5Qit2','8Z8Mz3S1HTTkXXvdhXHfjcHroSk1']);
+const app=initializeApp(config),auth=getAuth(app),db=getFirestore(app);
+const privateRef=doc(db,'jarion','teacherData'),publicRef=doc(db,'jarion','publicSeats');
+let unsub=null,saveTimer=null,writeBusy=false,dirty=false,remoteReady=false;
+const status=t=>{document.getElementById('cloudStatus').textContent=t};
+const blank=()=>({rosters:{},assignments:{},constraints:{},history:{}});
+function applyData(obj){
+ if(!obj||typeof obj!=='object')return;
+ data=JSON.parse(JSON.stringify(obj));
+ data.rosters??={};data.constraints??={};data.history??={};data.assignments??={};
+ data.rooms??=[{id:'computer',name:'컴퓨터실',type:'computer',rows:0,cols:0}];
+ data.currentRoom=data.rooms.some(r=>r.id===data.currentRoom)?data.currentRoom:'computer';
+ data.roomAssignments??={computer:data.assignments||{}};
+ data.rooms.forEach(r=>data.roomAssignments[r.id]??={});
+ selectedPC=null;render();
+}
+function publicProjection(){
+ const rosters={};
+ // 학생의 이름/번호와 자리표에 필요한 정보만 공개. 상태, 제약조건, 편집기록 제외.
+ for(const [k,arr] of Object.entries(data.rosters||{}))
+   rosters[k]=(arr||[]).filter(s=>s.status==='재학').map(s=>({id:s.id,no:s.no,name:s.name,status:'재학'}));
+ return {rosters,rooms:data.rooms,currentRoom:'computer',roomAssignments:data.roomAssignments,assignments:{},constraints:{},history:{}};
+}
+async function refreshGuest(){
+ try{const snap=await getDoc(publicRef);applyData(snap.exists()?snap.data().payload:blank());status(snap.exists()?'공개 자리표 연결됨':'공개된 자리표 없음');}
+ catch(e){status('공개 조회 오류');console.error(e);}
+}
+async function saveNow(){
+ if(!teacher||!remoteReady||writeBusy){return;}
+ writeBusy=true;
+ try{
+   while(dirty&&teacher){
+     dirty=false;
+     const privatePayload=JSON.parse(JSON.stringify(data));
+     await setDoc(privateRef,{payload:privatePayload,updatedAt:new Date().toISOString()});
+     await setDoc(publicRef,{payload:publicProjection(),updatedAt:new Date().toISOString()});
+   }
+   status('클라우드 저장 완료');
+ }catch(e){dirty=true;status('저장 실패 - 다시 시도 필요');console.error(e);alert('클라우드 저장에 실패했습니다: '+e.message);}
+ finally{writeBusy=false;}
+}
+window.cloudSaveQueued=()=>{if(!teacher||!remoteReady)return;dirty=true;status('저장 대기 중');clearTimeout(saveTimer);saveTimer=setTimeout(saveNow,650);};
+window.cloudSignIn=async()=>{
+ const email=document.getElementById('loginEmail').value.trim(),password=document.getElementById('loginPassword').value;
+ document.getElementById('loginError').textContent='';
+ try{await signInWithEmailAndPassword(auth,email,password);document.getElementById('loginPassword').value='';closeModal('loginModal');}
+ catch(e){document.getElementById('loginError').textContent='로그인 실패: '+e.code;}
+};
+window.cloudSignOut=async()=>{
+ if(dirty)await saveNow();
+ await signOut(auth);
+};
+window.downloadCloudBackup=()=>{
+ if(!teacher)return;
+ const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='JariON_교사백업_'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+};
+window.importBackup=async(input)=>{
+ if(!teacher)return;
+ const f=input.files?.[0];if(!f)return;
+ try{
+  const parsed=JSON.parse(await f.text());
+  let obj=parsed;
+  if(parsed.jarionData_v095)obj=typeof parsed.jarionData_v095==='string'?JSON.parse(parsed.jarionData_v095):parsed.jarionData_v095;
+  else if(parsed.data&&parsed.data.rosters)obj=parsed.data;
+  else if(parsed.payload&&parsed.payload.rosters)obj=parsed.payload;
+  else if(parsed.localStorage){
+    const keys=Object.keys(parsed.localStorage).filter(k=>k.startsWith('jarionData_')).sort().reverse();
+    if(keys.length)obj=typeof parsed.localStorage[keys[0]]==='string'?JSON.parse(parsed.localStorage[keys[0]]):parsed.localStorage[keys[0]];
+  }
+  if(!obj.rosters||typeof obj.rosters!=='object')throw Error('JariON 명렬표 데이터가 없습니다.');
+  if(!confirm('기존 백업을 불러오면 현재 클라우드 명렬표·자리배치를 덮어씁니다. 계속할까요?'))return;
+  applyData(obj);dirty=true;await saveNow();alert('백업을 클라우드에 반영했습니다.');
+ }catch(e){alert('백업 가져오기 실패: '+e.message);}finally{input.value='';}
+};
+onAuthStateChanged(auth,async user=>{
+ if(unsub){unsub();unsub=null;}
+ teacher=false;remoteReady=false;dirty=false;
+ if(user&&teacherUids.has(user.uid)){
+   status('교사 데이터 불러오는 중');
+   try{
+     const snap=await getDoc(privateRef);
+     applyData(snap.exists()?snap.data().payload:blank());
+     teacher=true;remoteReady=true;render();
+     status(snap.exists()?'교사 계정 · 동기화됨':'교사 계정 · 백업 가져오기 필요');
+   }catch(e){status('교사 데이터 접근 오류');alert('교사 데이터 접근 실패: '+e.message);render();}
+ }else{
+   if(user){await signOut(auth);alert('등록된 교사 계정이 아닙니다.');}
+   await refreshGuest();render();
+ }
+});
 </script>
 </body></html>

@@ -78,6 +78,11 @@ body.teacher .sidebar{box-shadow:inset 4px 0 0 #7aa58a}
 .teacher-mode-badge{display:none;margin-left:8px;padding:5px 9px;border-radius:999px;background:#e8f4ec;color:#17603a;font-size:12px;font-weight:900;white-space:nowrap}
 body.teacher .teacher-mode-badge{display:inline-flex}
 .roster-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px;flex-wrap:nowrap}.roster-head>div{min-width:0}.count-badge{flex-shrink:0;white-space:nowrap;font-size:12px;font-weight:800;color:#23577f;background:#eaf3fc;border-radius:20px;padding:7px 9px}.room-controls select{width:100%;min-height:42px;border:1px solid #d4deea;border-radius:9px;padding:8px;background:white}
+.advanced-management{width:100%;border:1px solid #d5dfeb;border-radius:10px;background:#f7f9fc;overflow:hidden}
+.advanced-management summary{cursor:pointer;padding:12px 10px;font-size:13px;font-weight:800;color:#345371;list-style-position:inside}
+.advanced-management .advanced-hint{font-size:11px;font-weight:500;color:#8290a0;float:right;margin-top:2px}
+.advanced-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:0 10px 10px}
+.advanced-actions button{font-size:12px;padding:10px 5px;min-width:0;word-break:keep-all}
 </style>
 </head>
 <body>
@@ -93,16 +98,10 @@ body.teacher .teacher-mode-badge{display:inline-flex}
 <aside class="panel sidebar">
   <div>
     <div class="section-title">학교 · 학년도</div>
-    <div class="room-controls"><select id="schoolSelect" onchange="switchSchool(this.value)"></select><select id="yearSelect" onchange="switchYear(this.value)"></select>
-    <button class="ghost teacher-only room-action" onclick="addSchool()">＋ 학교 추가</button>
-    <button class="ghost teacher-only room-action" onclick="addYear()">＋ 학년도 추가</button>
-    <button class="ghost teacher-only room-action" onclick="addClass()">＋ 학급 추가</button>
-    <button class="ghost teacher-only room-action" onclick="renameSchool()">✏ 학교 이름 수정</button></div>
+    <div class="room-controls"><select id="schoolSelect" onchange="switchSchool(this.value)"></select><select id="yearSelect" onchange="switchYear(this.value)"></select></div>
     <div class="section-title">교실 선택</div>
     <div class="room-controls">
       <select id="roomSelect" onchange="setRoom(this.value)"></select>
-      <button class="primary teacher-only room-action" data-teacher-control="1" onclick="addRoom()">＋ 교실 추가</button>
-      <button class="ghost teacher-only room-action" data-teacher-control="1" onclick="manageRoom()">✏ 교실명/배치 수정</button>
     </div>
     <div class="section-title">학년 · 반 선택</div>
     <div id="classGrid" class="classgrid"></div>
@@ -120,6 +119,26 @@ body.teacher .teacher-mode-badge{display:inline-flex}
     <button class="ghost" onclick="document.getElementById('backupInput').click()">📂 기존 백업 가져오기</button>
     <button class="ghost" onclick="downloadCloudBackup()">⬇ 현재 데이터 백업</button>
     <input type="file" id="backupInput" accept=".json,application/json" style="display:none" onchange="importBackup(this)">
+  </div>
+  <div class="teacher-only" style="flex-direction:column;width:100%">
+    <details class="advanced-management">
+      <summary>⚙ 교실 관리 <span class="advanced-hint">필요할 때 펼치기</span></summary>
+      <div class="advanced-actions">
+        <button class="ghost" onclick="addRoom()">＋ 교실 추가</button>
+        <button class="ghost" onclick="manageRoom()">✏ 교실명/배치 수정</button>
+      </div>
+    </details>
+  </div>
+  <div class="teacher-only" style="flex-direction:column;width:100%">
+    <details class="advanced-management">
+      <summary>⚙ 학교 · 학년도 · 학급 관리 <span class="advanced-hint">필요할 때 펼치기</span></summary>
+      <div class="advanced-actions">
+        <button class="ghost" onclick="addSchool()">＋ 학교 추가</button>
+        <button class="ghost" onclick="addYear()">＋ 학년도 추가</button>
+        <button class="ghost" onclick="addClass()">＋ 학급 추가</button>
+        <button class="ghost" onclick="renameSchool()">✏ 학교 이름 수정</button>
+      </div>
+    </details>
   </div>
   <div class="note">
     <b>배치 기준</b><br>

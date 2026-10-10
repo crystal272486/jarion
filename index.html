@@ -82,7 +82,7 @@ body.teacher .teacher-mode-badge{display:inline-flex}
 .advanced-management summary{cursor:pointer;padding:12px 10px;font-size:13px;font-weight:800;color:#345371;list-style-position:inside}
 .advanced-management .advanced-hint{font-size:11px;font-weight:500;color:#8290a0;float:right;margin-top:2px}
 .advanced-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:0 10px 10px}
-.advanced-actions button{font-size:12px;padding:10px 5px;min-width:0;word-break:keep-all}
+.advanced-actions button{font-size:11px;padding:10px 3px;min-width:0;white-space:nowrap;word-break:keep-all;letter-spacing:-.35px;justify-content:center;line-height:1.2}
 </style>
 </head>
 <body>
@@ -125,7 +125,7 @@ body.teacher .teacher-mode-badge{display:inline-flex}
       <summary>⚙ 교실 관리 <span class="advanced-hint">필요할 때 펼치기</span></summary>
       <div class="advanced-actions">
         <button class="ghost" onclick="addRoom()">＋ 교실 추가</button>
-        <button class="ghost" onclick="manageRoom()">✏ 교실명/배치 수정</button>
+        <button class="ghost" onclick="manageRoom()">✏ 교실 수정</button>
       </div>
     </details>
   </div>
@@ -136,7 +136,7 @@ body.teacher .teacher-mode-badge{display:inline-flex}
         <button class="ghost" onclick="addSchool()">＋ 학교 추가</button>
         <button class="ghost" onclick="addYear()">＋ 학년도 추가</button>
         <button class="ghost" onclick="addClass()">＋ 학급 추가</button>
-        <button class="ghost" onclick="renameSchool()">✏ 학교 이름 수정</button>
+        <button class="ghost" onclick="renameSchool()">✏ 학교명 수정</button>
       </div>
     </details>
   </div>

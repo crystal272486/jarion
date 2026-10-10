@@ -453,8 +453,8 @@ function clearSeats(){if(!teacher)return;snapshot();data.roomAssignments[data.cu
 function undo(){if(!teacher)return;let hk=data.currentRoom+"|"+current,h=data.history[hk];if(!h)return alert("복원할 이전 배치가 없습니다.");let now=JSON.parse(JSON.stringify(assignment()));data.roomAssignments[data.currentRoom][current]=h;data.history[hk]=now;persist();render()}
 function saveCurrent(){if(!teacher)return;persist();alert(classLabel()+" 현재 배치를 저장했습니다.")}
 function toggleTeacher(){
- if(!teacher){let p=prompt("교사모드 PIN을 입력하세요.\\n초기 PIN: 1234");if(p!=="1234")return alert("PIN이 맞지 않습니다.");teacher=true}
- else teacher=false;render();
+ if(teacher){if(typeof window.cloudSignOut==='function')window.cloudSignOut();return;}
+ document.getElementById('loginModal').classList.add('open');
 }
 function openRosterEditor(){if(!teacher)return;
  let r=data.rosters[current]||[];
@@ -565,6 +565,7 @@ window.importBackup=async(input)=>{
   const parsed=JSON.parse(await f.text());
   let obj=parsed;
   if(parsed.jarionData_v095)obj=typeof parsed.jarionData_v095==='string'?JSON.parse(parsed.jarionData_v095):parsed.jarionData_v095;
+  else if(parsed.data&&Object.keys(parsed.data).some(k=>k.startsWith('jarionData_'))){const keys=Object.keys(parsed.data).filter(k=>k.startsWith('jarionData_')).sort().reverse();obj=typeof parsed.data[keys[0]]==='string'?JSON.parse(parsed.data[keys[0]]):parsed.data[keys[0]];}
   else if(parsed.data&&parsed.data.rosters)obj=parsed.data;
   else if(parsed.payload&&parsed.payload.rosters)obj=parsed.payload;
   else if(parsed.localStorage){

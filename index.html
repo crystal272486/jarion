@@ -354,6 +354,7 @@ function renderLab(){
  }
 }function renderSummary(){
  let used=Object.values(assignment()).filter(Boolean).length;
+ const capacity=roomSeatNumbers().length;
  summary.innerHTML=`<div class="pill">전체 ${capacity}자리</div><div class="pill">배치 ${used}명</div><div class="pill">빈자리 ${capacity-used}개</div>`;
  meta.textContent=`${currentRoom().name} · ${classLabel()} · ${current.startsWith("2-")?"번호순":"랜덤"} · 전학/유학 제외`;
  autoBtn.textContent=current.startsWith("2-")?"🔢 번호순 배치하기":"🎲 랜덤 배치하기";
@@ -369,7 +370,7 @@ function render(){
  const tbtn=document.getElementById("teacherModeBtn");
  if(tbtn){
    tbtn.textContent=teacher?"🔓 교사모드 ON":"🔒 교사모드";
-   tbtn.title=teacher?"클릭하면 일반모드로 전환됩니다.":"클릭하면 PIN 입력 후 교사모드로 전환됩니다.";
+   tbtn.title=teacher?"클릭하면 일반모드로 전환됩니다.":"클릭하면 Firebase 교사 로그인 화면이 열립니다.";
  }
  renderRooms();renderClasses();renderRoster();renderLab();renderSummary();
  const bb=document.querySelector(".blackboard"); if(bb)bb.style.display=currentRoom().type==="class30"?"none":"";

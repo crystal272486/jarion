@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>JariON v1.0 Firebase - 우리 학교 스마트 자리배치</title>
+<title>JariON Firebase v1.1.1 - 우리 학교 스마트 자리배치</title>
 <style>
 :root{--navy:#173b67;--blue:#2176d2;--line:#cfd8e3;--bg:#f4f7fb;--green:#1f9d61;--red:#e65353;--ink:#172033}
 *{box-sizing:border-box} body{margin:0;font-family:"Malgun Gothic","Noto Sans KR",sans-serif;background:var(--bg);color:var(--ink)}
@@ -77,6 +77,7 @@ body.teacher #teacherModeBtn{background:#e8f4ec;border-color:#79a989;color:#1760
 body.teacher .sidebar{box-shadow:inset 4px 0 0 #7aa58a}
 .teacher-mode-badge{display:none;margin-left:8px;padding:5px 9px;border-radius:999px;background:#e8f4ec;color:#17603a;font-size:12px;font-weight:900;white-space:nowrap}
 body.teacher .teacher-mode-badge{display:inline-flex}
+.roster-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px;flex-wrap:nowrap}.roster-head>div{min-width:0}.count-badge{flex-shrink:0;white-space:nowrap;font-size:12px;font-weight:800;color:#23577f;background:#eaf3fc;border-radius:20px;padding:7px 9px}.room-controls select{width:100%;min-height:42px;border:1px solid #d4deea;border-radius:9px;padding:8px;background:white}
 </style>
 </head>
 <body>
@@ -91,6 +92,12 @@ body.teacher .teacher-mode-badge{display:inline-flex}
 <main>
 <aside class="panel sidebar">
   <div>
+    <div class="section-title">학교 · 학년도</div>
+    <div class="room-controls"><select id="schoolSelect" onchange="switchSchool(this.value)"></select><select id="yearSelect" onchange="switchYear(this.value)"></select>
+    <button class="ghost teacher-only room-action" onclick="addSchool()">＋ 학교 추가</button>
+    <button class="ghost teacher-only room-action" onclick="addYear()">＋ 학년도 추가</button>
+    <button class="ghost teacher-only room-action" onclick="addClass()">＋ 학급 추가</button>
+    <button class="ghost teacher-only room-action" onclick="renameSchool()">✏ 학교 이름 수정</button></div>
     <div class="section-title">교실 선택</div>
     <div class="room-controls">
       <select id="roomSelect" onchange="setRoom(this.value)"></select>
@@ -101,12 +108,13 @@ body.teacher .teacher-mode-badge{display:inline-flex}
     <div id="classGrid" class="classgrid"></div>
   </div>
   <div>
-    <div class="section-title">학생 명렬표 <small style="font-size:12px;color:#71849a">(번호 · 이름)</small> <span id="studentCount" style="font-size:13px;color:#62768b"></span></div>
+    <div class="roster-head"><div><div class="section-title" style="margin:0">학생 명렬표</div><small style="color:#71849a">번호 · 이름</small></div><span id="studentCount" class="count-badge"></span></div>
     <div id="roster" class="roster"></div>
     <div class="roster-actions teacher-only">
       <button class="primary" onclick="openRosterEditor()">명렬표 수정</button>
       <button class="ghost" onclick="openConstraints()">자리 조건</button>
     </div>
+    <button class="ghost teacher-only" style="width:100%;justify-content:center;margin-top:8px" onclick="openBulkRoster()">📋 명렬표 일괄 등록 (엑셀·CSV·붙여넣기)</button>
   </div>
   <div class="teacher-only" style="flex-direction:column;gap:7px">
     <button class="ghost" onclick="document.getElementById('backupInput').click()">📂 기존 백업 가져오기</button>
@@ -115,8 +123,7 @@ body.teacher .teacher-mode-badge{display:inline-flex}
   </div>
   <div class="note">
     <b>배치 기준</b><br>
-    2학년: 학생번호순 배치<br>
-    4·5학년: 랜덤 배치<br>
+    모든 학년: 랜덤·번호순 배치 선택<br>
     전학·유학 학생: 자동 제외<br>
     PC 1~30 번호와 위치는 고정
   </div>
@@ -141,7 +148,7 @@ body.teacher .teacher-mode-badge{display:inline-flex}
     </div>
     <div class="blackboard" style="margin-top:24px;margin-bottom:0">칠판 · 선생님 위치</div>
     <div class="actions teacher-only">
-      <button id="autoBtn" class="primary" onclick="autoAssign()">🎲 자동 자리배치</button>
+      <button class="primary" onclick="autoAssign('random')">🎲 랜덤배치</button><button class="green" onclick="autoAssign('ordered')">🔢 번호순배치</button>
       <button class="danger" onclick="clearSeats()">자리 비우기</button>
       <button class="ghost" onclick="undo()">이전 배치 복원</button>
     </div>
@@ -161,6 +168,17 @@ body.teacher .teacher-mode-badge{display:inline-flex}
   <h2>명렬표 관리</h2>
   <div id="editRoster"></div>
   <div class="dialog-actions"><button class="ghost" onclick="closeModal('rosterModal')">취소</button><button class="primary" onclick="saveRoster()">저장</button></div>
+</div></div>
+
+<div id="bulkRosterModal" class="modal"><div class="dialog" style="max-width:850px">
+<h2>명렬표 일괄 등록</h2>
+<p id="bulkTarget" class="note"></p>
+<p style="font-size:13px;color:#52667c">엑셀(.xlsx/.xls), CSV(.csv), 텍스트(.txt) 파일을 선택하거나 엑셀 표를 그대로 붙여넣으세요. 첫 행은 <b>번호, 이름, 상태</b>를 권장합니다. 상태를 생략하면 재학으로 처리합니다.</p>
+<input id="bulkRosterFile" type="file" accept=".xlsx,.xls,.csv,.tsv,.txt" onchange="loadBulkRosterFile(this)" style="width:100%;margin:8px 0;padding:10px;border:1px solid #cbd5e1;border-radius:8px">
+<textarea id="bulkRosterText" rows="7" placeholder="번호	이름	상태&#10;1	홍길동	재학&#10;51	김학생	재학" style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font:14px 'Malgun Gothic',sans-serif"></textarea>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px"><label><input type="radio" name="bulkMode" value="merge" checked> 기존 명렬표에 추가·갱신 (추천)</label><label><input type="radio" name="bulkMode" value="replace"> 현재 학급 명렬표 전체 교체</label><button class="ghost" onclick="previewBulkRoster()">미리보기·검증</button></div>
+<div id="bulkRosterPreview" class="note" style="margin-top:12px;max-height:230px;overflow:auto">파일을 선택하거나 명렬표를 붙여넣고 미리보기를 누르세요.</div>
+<div class="dialog-actions"><button class="ghost" onclick="closeModal('bulkRosterModal')">취소</button><button id="bulkApplyBtn" class="primary" disabled onclick="applyBulkRoster()">검증 후 등록</button></div>
 </div></div>
 
 <div id="roomModal" class="modal"><div class="dialog">
@@ -302,9 +320,10 @@ function assignment(){
 }
 function classLabel(){let [g,c]=current.split("-");return `${g}학년 ${c}반`}
 function renderClasses(){
- let h="";
- [2,4,5].forEach(g=>{h+=`<div class="grade">${g}학년</div>`;for(let c=1;c<=4;c++)h+=`<button class="classbtn ${current===g+"-"+c?"active":""}" onclick="setClass('${g}-${c}')">${c}반</button>`});
- classGrid.innerHTML=h;
+ let h=""; const keys=Object.keys(data.rosters||{}).sort((a,b)=>{const [ag,ac]=a.split('-').map(Number),[bg,bc]=b.split('-').map(Number);return ag-bg||ac-bc});
+ const grades=[...new Set(keys.map(k=>k.split('-')[0]))];
+ grades.forEach(g=>{h+=`<div class="grade">${esc(g)}학년</div>`;keys.filter(k=>k.startsWith(g+'-')).forEach(k=>{const c=k.split('-')[1];h+=`<button class="classbtn ${current===k?'active':''}" onclick="setClass('${k}')">${esc(c)}반</button>`})});
+ classGrid.innerHTML=h||'<div class="note">교사모드에서 학급을 추가하세요.</div>';
 }
 function setClass(k){current=k;selectedPC=null;render()}
 function renderRoster(){
@@ -356,8 +375,8 @@ function renderLab(){
  let used=Object.values(assignment()).filter(Boolean).length;
  const capacity=roomSeatNumbers().length;
  summary.innerHTML=`<div class="pill">전체 ${capacity}자리</div><div class="pill">배치 ${used}명</div><div class="pill">빈자리 ${capacity-used}개</div>`;
- meta.textContent=`${currentRoom().name} · ${classLabel()} · ${current.startsWith("2-")?"번호순":"랜덤"} · 전학/유학 제외`;
- autoBtn.textContent=current.startsWith("2-")?"🔢 번호순 배치하기":"🎲 랜덤 배치하기";
+ meta.textContent=`${currentRoom().name} · ${classLabel()} · 배치방식 선택 · 전학/유학 제외`;
+ 
 }
 function applyTeacherVisibility(){
  document.querySelectorAll(".teacher-only").forEach(el=>{
@@ -365,6 +384,7 @@ function applyTeacherVisibility(){
  });
 }
 function render(){
+ renderWorkspaceSelectors();
  document.body.classList.toggle("teacher",teacher);
  applyTeacherVisibility();
  const tbtn=document.getElementById("teacherModeBtn");
@@ -389,7 +409,7 @@ function constraintsOK(map){
    return !px||!py||!adjacent(px,py);
  });
 }
-function autoAssign(){if(!teacher)return;
+function autoAssign(mode="random"){if(!teacher)return;
  snapshot();
  let students=activeStudents().slice(), ids=students.map(s=>s.id), best={};
  const r=currentRoom();
@@ -397,9 +417,9 @@ function autoAssign(){if(!teacher)return;
  if(ids.length>seats.length){alert(`학생 ${ids.length}명보다 자리가 ${seats.length}개로 부족합니다.`);return}
  for(let t=0;t<500;t++){
    let map={};
-   if(current.startsWith("2-")){
-     let arr=ids.slice();
-     seats.forEach((pc,i)=>{if(arr[i])map[pc]=arr[i]});
+   if(mode==="ordered"){
+     const ordered=students.sort((a,b)=>Number(a.no)-Number(b.no));
+     ordered.forEach((st,i)=>{if(i<seats.length)map[i+1]=st.id});
    }else{
      let randomStudents=shuffle(ids.slice()), randomSeats=shuffle(seats.slice());
      randomStudents.forEach((id,i)=>map[randomSeats[i]]=id);
@@ -479,6 +499,107 @@ function saveRoster(){if(!teacher)return;
  data.rosters[current]=rows.map((tr,i)=>{let ins=tr.querySelectorAll("input,select"),name=ins[1].value.trim();return {id:old[i]?.id||current+"-"+Date.now()+"-"+i,no:Number(ins[0].value)||i+1,name,status:ins[2].value}}).filter(x=>x.name);
  persist();closeModal("rosterModal");render();
 }
+// v1.1.1: 현재 선택 학교·학년도·학급에만 적용되는 일괄 명렬표 등록.
+let bulkParsed=null,bulkContext='';
+function bulkKey(){return schoolId+'|'+schoolYear+'|'+current;}
+function openBulkRoster(){
+ if(!teacher)return;
+ bulkParsed=null;bulkContext=bulkKey();
+ bulkRosterFile.value='';bulkRosterText.value='';bulkApplyBtn.disabled=true;
+ bulkRosterPreview.textContent='파일을 선택하거나 명렬표를 붙여넣고 미리보기를 누르세요.';
+ bulkTarget.textContent=`등록 대상: ${workspaceRoot.schools[schoolId].name} · ${schoolYear}학년도 · ${classLabel()} (현재 ${data.rosters[current]?.length||0}명)`;
+ bulkRosterModal.classList.add('open');
+}
+function parseDelimitedLine(line,delimiter){
+ const out=[];let buf='',quoted=false;
+ for(let i=0;i<line.length;i++){
+  const ch=line[i];if(ch==='"'){if(quoted&&line[i+1]==='"'){buf+='"';i++;}else quoted=!quoted;}
+  else if(ch===delimiter&&!quoted){out.push(buf.trim());buf='';}else buf+=ch;
+ }out.push(buf.trim());return out;
+}
+function parseRosterText(text){
+ const lines=text.replace(/^\uFEFF/,'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+ if(!lines.length)throw Error('명렬표 내용이 비어 있습니다.');
+ const delimiter=lines[0].includes('\t')?'\t':lines[0].includes(',')?',':null;
+ const rows=lines.map(l=>delimiter?parseDelimitedLine(l,delimiter):l.split(/\s{2,}/));
+ let header=rows[0].map(x=>String(x).replace(/\s/g,'').toLowerCase());
+ const headerFound=header.some(x=>['번호','학생번호','학번','no','number'].includes(x))&&header.some(x=>['이름','성명','학생명','name'].includes(x));
+ const ix=names=>header.findIndex(x=>names.includes(x));
+ const noIdx=headerFound?ix(['번호','학생번호','학번','no','number']):0;
+ const nameIdx=headerFound?ix(['이름','성명','학생명','name']):1;
+ const statusIdx=headerFound?ix(['상태','재학상태','학적상태','학적','status']):2;
+ return normalizeBulkRows(rows.slice(headerFound?1:0).map(row=>[row[noIdx],row[nameIdx],row[statusIdx]]));
+}
+function normalizeBulkRows(rows){
+ const students=[],seen=new Set(),errors=[];
+ rows.forEach((row,i)=>{
+  if(row.every(x=>String(x??'').trim()===''))return;
+  const no=Number(String(row[0]??'').trim()),name=String(row[1]??'').trim(),raw=String(row[2]??'').trim();
+  const status=raw||'재학';
+  if(!Number.isInteger(no)||no<1||no>9999){errors.push(`${i+1}행: 학생번호 오류`);return;}
+  if(!name){errors.push(`${i+1}행: 이름 누락`);return;}
+  if(!['재학','전학','유학'].includes(status)){errors.push(`${i+1}행: 상태는 재학·전학·유학 중 선택`);return;}
+  if(seen.has(no)){errors.push(`${i+1}행: ${no}번 중복`);return;}
+  seen.add(no);students.push({no,name,status});
+ });
+ if(!students.length)errors.push('등록 가능한 학생이 없습니다.');
+ if(errors.length)throw Error(errors.slice(0,12).join('\n')+(errors.length>12?'\n외 '+(errors.length-12)+'건':''));
+ return students.sort((a,b)=>a.no-b.no);
+}
+async function loadBulkRosterFile(input){
+ if(!teacher)return;const file=input.files?.[0];if(!file)return;
+ bulkParsed=null;bulkApplyBtn.disabled=true;
+ try{
+  const ext=file.name.split('.').pop().toLowerCase();
+  if(ext==='xlsx'||ext==='xls'){
+   if(!window.XLSX){
+    await new Promise((resolve,reject)=>{const el=document.createElement('script');el.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';el.onload=resolve;el.onerror=()=>reject(Error('엑셀 읽기 라이브러리를 불러오지 못했습니다. CSV로 저장하여 다시 시도하세요.'));document.head.appendChild(el);});
+   }
+   const book=window.XLSX.read(await file.arrayBuffer(),{type:'array'});
+   const sheet=book.Sheets[book.SheetNames[0]];
+   const rows=window.XLSX.utils.sheet_to_json(sheet,{header:1,defval:''});
+   const tsv=rows.map(r=>r.map(x=>String(x).replace(/[\t\r\n]/g,' ')).join('\t')).join('\n');
+   bulkRosterText.value=tsv;
+  }else{
+   bulkRosterText.value=await file.text();
+  }
+  previewBulkRoster();
+ }catch(e){bulkRosterPreview.textContent='파일 읽기 실패: '+e.message;}
+}
+function previewBulkRoster(){
+ bulkParsed=null;bulkApplyBtn.disabled=true;
+ if(!teacher||bulkKey()!==bulkContext){bulkRosterPreview.textContent='학교·학급이 변경되었습니다. 다시 열어주세요.';return;}
+ try{
+  const parsed=parseRosterText(bulkRosterText.value);
+  const mode=document.querySelector('input[name="bulkMode"]:checked').value;
+  const existing=data.rosters[current]||[];
+  const matched=parsed.filter(s=>existing.some(x=>Number(x.no)===s.no)).length;
+  bulkParsed={students:parsed,mode,context:bulkContext,source:bulkRosterText.value};
+  const heading=`검증 완료: ${parsed.length}명 · 기존 번호 일치 ${matched}명 · ${mode==='merge'?'기존 유지 및 추가·갱신':'전체 교체'}\n`;
+  bulkRosterPreview.textContent=heading+parsed.slice(0,35).map(s=>`${s.no}번  ${s.name}  (${s.status})`).join('\n')+(parsed.length>35?`\n… 외 ${parsed.length-35}명`:'');
+  bulkRosterPreview.style.whiteSpace='pre-wrap';bulkApplyBtn.disabled=false;
+ }catch(e){bulkRosterPreview.textContent='검증 오류:\n'+e.message;bulkRosterPreview.style.whiteSpace='pre-wrap';}
+}
+function applyBulkRoster(){
+ if(!teacher||!bulkParsed||bulkApplyBtn.disabled)return;
+ if(bulkParsed.context!==bulkKey()||bulkParsed.source!==bulkRosterText.value){alert('등록 대상 또는 내용이 변경됐습니다. 미리보기를 다시 실행하세요.');return;}
+ const {students,mode}=bulkParsed,old=data.rosters[current]||[];
+ const byNo=new Map(old.map(s=>[Number(s.no),s]));
+ const imported=students.map(s=>({...s,id:byNo.get(s.no)?.id||current+'-'+Date.now()+'-'+s.no}));
+ const result=mode==='replace'?imported:[...old.filter(s=>!students.some(x=>x.no===Number(s.no))),...imported].sort((a,b)=>Number(a.no)-Number(b.no));
+ const message=mode==='replace'?`현재 ${old.length}명 명렬표를 ${result.length}명으로 교체합니다. 기존 학생 중 제외되는 학생의 자리배치가 정리됩니다.`:`현재 명렬표에 ${students.length}명을 추가·갱신합니다. 나머지 학생은 유지됩니다.`;
+ if(!confirm(`${workspaceRoot.schools[schoolId].name} ${schoolYear}학년도 ${classLabel()}\n\n${message}\n\n등록 전에 현재 데이터 백업을 권장합니다. 계속할까요?`))return;
+ const validIds=new Set(result.map(s=>s.id));
+ if(mode==='replace'){
+  for(const room of Object.values(data.roomAssignments||{})){
+   const assignment=room[current];if(!assignment)continue;
+   for(const seat of Object.keys(assignment))if(!validIds.has(assignment[seat]))delete assignment[seat];
+  }
+  if(data.constraints?.[current])data.constraints[current]=data.constraints[current].filter(pair=>pair.every(id=>validIds.has(id)));
+ }
+ data.rosters[current]=result;persist();closeModal('bulkRosterModal');bulkParsed=null;render();
+ alert(`${result.length}명 명렬표를 반영했습니다. 상단의 클라우드 저장 상태를 확인하세요.`);
+}
 function openConstraints(){if(!teacher)return;
  let opts=activeStudents().map(s=>`<option value="${s.id}">${s.no}. ${esc(s.name)}</option>`).join("");c1.innerHTML=opts;c2.innerHTML=opts;renderConstraints();constraintModal.classList.add("open")
 }
@@ -488,6 +609,55 @@ function renderConstraints(){
 }
 function addConstraint(){if(!teacher)return;if(c1.value===c2.value)return alert("서로 다른 학생을 선택하세요.");data.constraints[current]??=[];if(!data.constraints[current].some(x=>x.includes(c1.value)&&x.includes(c2.value)))data.constraints[current].push([c1.value,c2.value]);persist();renderConstraints()}
 function delConstraint(i){if(!teacher)return;data.constraints[current].splice(i,1);persist();renderConstraints()}
+
+// v1.1: 기존 2026년 한신초등학교 데이터를 첫 작업공간으로 보존합니다.
+let workspaceRoot=null;
+let schoolId='hanshin',schoolYear='2026';
+function safeCopy(o){return JSON.parse(JSON.stringify(o));}
+function makeEmptyYear(){return {rosters:{},assignments:{},constraints:{},history:{},rooms:[{id:'computer',name:'컴퓨터실',type:'computer',rows:0,cols:0}],currentRoom:'computer',roomAssignments:{computer:{}}};}
+function ensureWorkspaces(obj){
+ if(obj&&obj.workspaces&&obj.workspaces.schools){
+   workspaceRoot=obj.workspaces;
+   schoolId=workspaceRoot.activeSchool||Object.keys(workspaceRoot.schools)[0]||'hanshin';
+   schoolYear=String(workspaceRoot.activeYear||Object.keys(workspaceRoot.schools[schoolId]?.years||{})[0]||'2026');
+   return;
+ }
+ const old=safeCopy(obj||makeEmptyYear());
+ workspaceRoot={version:1,activeSchool:'hanshin',activeYear:'2026',legacySnapshot:safeCopy(old),schools:{hanshin:{name:'한신초등학교',years:{'2026':old}}}};
+ schoolId='hanshin';schoolYear='2026';
+}
+function saveWorkspaceState(){
+ if(!workspaceRoot||!workspaceRoot.schools[schoolId])return;
+ workspaceRoot.schools[schoolId].years[schoolYear]=safeCopy(data);
+ workspaceRoot.activeSchool=schoolId;workspaceRoot.activeYear=schoolYear;
+}
+function workspacePayload(){saveWorkspaceState();return {workspaces:safeCopy(workspaceRoot)};}
+function renderWorkspaceSelectors(){
+ if(!workspaceRoot)return;
+ const schools=workspaceRoot.schools;
+ schoolSelect.innerHTML=Object.entries(schools).map(([id,x])=>`<option value="${esc(id)}" ${id===schoolId?'selected':''}>${esc(x.name)}</option>`).join('');
+ const years=Object.keys(schools[schoolId]?.years||{}).sort().reverse();
+ yearSelect.innerHTML=years.map(y=>`<option value="${esc(y)}" ${y===schoolYear?'selected':''}>${esc(y)}학년도</option>`).join('');
+}
+function activateWorkspace(){
+ const year=workspaceRoot.schools[schoolId]?.years[schoolYear];if(!year)return;
+ data=safeCopy(year);data.rosters??={};data.constraints??={};data.history??={};data.rooms??=[{id:'computer',name:'컴퓨터실',type:'computer',rows:0,cols:0}];
+ data.roomAssignments??={computer:data.assignments||{}};data.rooms.forEach(r=>data.roomAssignments[r.id]??={});
+ if(!data.rooms.some(r=>r.id===data.currentRoom))data.currentRoom='computer';
+ const keys=Object.keys(data.rosters).sort();current=keys.includes(current)?current:(keys[0]||'2-1');selectedPC=null;render();
+}
+function switchSchool(id){if(!workspaceRoot.schools[id])return;saveWorkspaceState();schoolId=id;schoolYear=Object.keys(workspaceRoot.schools[id].years).sort().reverse()[0];activateWorkspace();if(teacher)persist();}
+function switchYear(y){if(!workspaceRoot.schools[schoolId].years[y])return;saveWorkspaceState();schoolYear=y;activateWorkspace();if(teacher)persist();}
+function addSchool(){if(!teacher)return;const name=prompt('새 학교 이름을 입력하세요.');if(!name?.trim())return;
+ if(Object.values(workspaceRoot.schools).some(s=>s.name===name.trim()))return alert('같은 이름의 학교가 있습니다.');
+ saveWorkspaceState();const id='school_'+Date.now();const year=String(new Date().getFullYear());workspaceRoot.schools[id]={name:name.trim(),years:{[year]:makeEmptyYear()}};schoolId=id;schoolYear=year;activateWorkspace();persist();}
+function renameSchool(){if(!teacher)return;const name=prompt('학교 이름 수정',workspaceRoot.schools[schoolId].name);if(!name?.trim())return;workspaceRoot.schools[schoolId].name=name.trim();persist();render();}
+function addYear(){if(!teacher)return;const y=prompt('새 학년도 (예: 2027)',String(Number(schoolYear)+1));if(!/^20\d{2}$/.test(y||''))return alert('학년도는 2027처럼 입력하세요.');
+ if(workspaceRoot.schools[schoolId].years[y])return alert('이미 존재하는 학년도입니다.');
+ saveWorkspaceState();const next=makeEmptyYear();next.rooms=safeCopy(data.rooms);next.roomAssignments=Object.fromEntries(next.rooms.map(r=>[r.id,{}]));
+ workspaceRoot.schools[schoolId].years[y]=next;schoolYear=y;activateWorkspace();persist();alert('새 학년도가 생성되었습니다. 교실 구조만 복사했으며 학생·자리배치는 비어 있습니다.');}
+function addClass(){if(!teacher)return;const key=prompt('학년-반 입력 (예: 3-2)');if(!/^\d{1,2}-\d{1,2}$/.test(key||''))return alert('3-2 형식으로 입력하세요.');if(data.rosters[key])return alert('이미 있는 학급입니다.');data.rosters[key]=[];current=key;persist();render();}
+
 function closeModal(id){document.getElementById(id).classList.remove("open")}
 render();
 </script>
@@ -510,12 +680,14 @@ const status=t=>{document.getElementById('cloudStatus').textContent=t};
 const blank=()=>({rosters:{},assignments:{},constraints:{},history:{}});
 function applyData(obj){
  if(!obj||typeof obj!=='object')return;
- data=JSON.parse(JSON.stringify(obj));
+ ensureWorkspaces(obj);
+ data=safeCopy(workspaceRoot.schools[schoolId].years[schoolYear]);
  data.rosters??={};data.constraints??={};data.history??={};data.assignments??={};
  data.rooms??=[{id:'computer',name:'컴퓨터실',type:'computer',rows:0,cols:0}];
  data.currentRoom=data.rooms.some(r=>r.id===data.currentRoom)?data.currentRoom:'computer';
  data.roomAssignments??={computer:data.assignments||{}};
  data.rooms.forEach(r=>data.roomAssignments[r.id]??={});
+ const keys=Object.keys(data.rosters||{}).sort();current=keys.includes(current)?current:(keys[0]||'2-1');
  selectedPC=null;render();
 }
 function publicProjection(){
@@ -523,7 +695,17 @@ function publicProjection(){
  // 학생의 이름/번호와 자리표에 필요한 정보만 공개. 상태, 제약조건, 편집기록 제외.
  for(const [k,arr] of Object.entries(data.rosters||{}))
    rosters[k]=(arr||[]).filter(s=>s.status==='재학').map(s=>({id:s.id,no:s.no,name:s.name,status:'재학'}));
- return {rosters,rooms:data.rooms,currentRoom:'computer',roomAssignments:data.roomAssignments,assignments:{},constraints:{},history:{}};
+ const years={};
+ saveWorkspaceState();
+ for(const [sid,school] of Object.entries(workspaceRoot.schools)){
+   const ymap={};
+   for(const [year,entry] of Object.entries(school.years)){
+     const r={};for(const [k,arr] of Object.entries(entry.rosters||{}))r[k]=(arr||[]).filter(s=>s.status==='재학').map(s=>({id:s.id,no:s.no,name:s.name,status:'재학'}));
+     ymap[year]={rosters:r,rooms:entry.rooms,roomAssignments:entry.roomAssignments,assignments:{},constraints:{},history:{},currentRoom:'computer'};
+   }
+   years[sid]={name:school.name,years:ymap};
+ }
+ return {workspaces:{version:1,activeSchool:schoolId,activeYear:schoolYear,schools:years}};
 }
 async function refreshGuest(){
  try{const snap=await getDoc(publicRef);applyData(snap.exists()?(typeof snap.data().payload==='string'?JSON.parse(snap.data().payload):snap.data().payload):blank());status(snap.exists()?'공개 자리표 연결됨':'공개된 자리표 없음');}
@@ -535,7 +717,7 @@ async function saveNow(){
  try{
    while(dirty&&teacher){
      dirty=false;
-     const privatePayload=JSON.parse(JSON.stringify(data));
+     const privatePayload=workspacePayload();
      await setDoc(privateRef,{payload:JSON.stringify(privatePayload),updatedAt:new Date().toISOString()});
      await setDoc(publicRef,{payload:JSON.stringify(publicProjection()),updatedAt:new Date().toISOString()});
    }
@@ -556,7 +738,7 @@ window.cloudSignOut=async()=>{
 };
 window.downloadCloudBackup=()=>{
  if(!teacher)return;
- const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+ const blob=new Blob([JSON.stringify(workspacePayload(),null,2)],{type:'application/json'});
  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='JariON_교사백업_'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
 };
 window.importBackup=async(input)=>{
@@ -567,13 +749,13 @@ window.importBackup=async(input)=>{
   let obj=parsed;
   if(parsed.jarionData_v095)obj=typeof parsed.jarionData_v095==='string'?JSON.parse(parsed.jarionData_v095):parsed.jarionData_v095;
   else if(parsed.data&&Object.keys(parsed.data).some(k=>k.startsWith('jarionData_'))){const keys=Object.keys(parsed.data).filter(k=>k.startsWith('jarionData_')).sort().reverse();obj=typeof parsed.data[keys[0]]==='string'?JSON.parse(parsed.data[keys[0]]):parsed.data[keys[0]];}
-  else if(parsed.data&&parsed.data.rosters)obj=parsed.data;
+  else if(parsed.data&&(parsed.data.rosters||parsed.data.workspaces))obj=parsed.data;
   else if(parsed.payload&&parsed.payload.rosters)obj=parsed.payload;
   else if(parsed.localStorage){
     const keys=Object.keys(parsed.localStorage).filter(k=>k.startsWith('jarionData_')).sort().reverse();
     if(keys.length)obj=typeof parsed.localStorage[keys[0]]==='string'?JSON.parse(parsed.localStorage[keys[0]]):parsed.localStorage[keys[0]];
   }
-  if(!obj.rosters||typeof obj.rosters!=='object')throw Error('JariON 명렬표 데이터가 없습니다.');
+  if(!obj.workspaces&&(!obj.rosters||typeof obj.rosters!=='object'))throw Error('JariON 명렬표 데이터가 없습니다.');
   if(!confirm('기존 백업을 불러오면 현재 클라우드 명렬표·자리배치를 덮어씁니다. 계속할까요?'))return;
   applyData(obj);dirty=true;await saveNow();if(dirty)throw Error('클라우드 저장이 완료되지 않았습니다.');alert('백업을 클라우드에 반영했습니다.');
  }catch(e){alert('백업 가져오기 실패: '+e.message);}finally{input.value='';}

@@ -489,7 +489,18 @@ function selectSeat(pc){if(!teacher)return;
  if(!a[selectedPC])delete a[selectedPC];if(!a[pc])delete a[pc];
  selectedPC=null;persist();render();
 }
-function clearSeats(){if(!teacher)return;snapshot();data.roomAssignments[data.currentRoom][current]={};persist();render()}
+function clearSeats(){
+  if(!teacher)return;
+  const schoolName=workspaceRoot?.schools?.[schoolId]?.name||'현재 학교';
+  const roomName=currentRoom().name;
+  const count=Object.values(assignment()).filter(Boolean).length;
+  if(!count){alert('현재 선택한 교실과 학급에는 비울 자리배치가 없습니다.');return;}
+  const message=`자리배치 초기화 확인\n\n${schoolName} · ${schoolYear}학년도 · ${classLabel()} · ${roomName}\n\n현재 배치된 ${count}명의 자리를 모두 비우시겠습니까?\n학생 명렬표와 다른 학급의 자리배치는 유지됩니다.\n\n[확인] 자리 비우기 / [취소] 유지`;
+  if(!confirm(message))return;
+  snapshot();
+  data.roomAssignments[data.currentRoom][current]={};
+  persist();render();
+}
 function undo(){if(!teacher)return;let hk=data.currentRoom+"|"+current,h=data.history[hk];if(!h)return alert("복원할 이전 배치가 없습니다.");let now=JSON.parse(JSON.stringify(assignment()));data.roomAssignments[data.currentRoom][current]=h;data.history[hk]=now;persist();render()}
 function saveCurrent(){if(!teacher)return;persist();alert(classLabel()+" 현재 배치를 저장했습니다.")}
 function toggleTeacher(){

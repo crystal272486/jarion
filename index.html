@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>JariON Firebase v1.1.7 - 우리 학교 스마트 자리배치</title>
+<title>JariON Firebase v1.1.8 - 우리 학교 스마트 자리배치</title>
 <style>
 :root{--navy:#173b67;--blue:#2176d2;--line:#cfd8e3;--bg:#f4f7fb;--green:#1f9d61;--red:#e65353;--ink:#172033}
 *{box-sizing:border-box} body{margin:0;font-family:"Malgun Gothic","Noto Sans KR",sans-serif;background:var(--bg);color:var(--ink)}
@@ -114,6 +114,16 @@ header{gap:12px}
 @media(max-width:1050px){header{height:auto;min-height:68px;flex-wrap:wrap;padding:8px 14px}.brand-credit{display:none}main{min-height:calc(100vh - 68px)}}
 @media(max-width:680px){.brand-avatar{width:44px;height:44px}.brand{font-size:23px}.sub{font-size:11px}#seatViewOverlay .seat-view-header{flex-wrap:wrap;padding:10px}.seat-view-credit{display:none}}
 @media print{.seat-view-credit{display:none!important}}
+
+/* v1.1.8: 자리배치 상단 툴바는 항상 한 줄로 유지 */
+.content{min-width:0}
+.content>.toolbar{display:flex;flex-wrap:nowrap;align-items:center;gap:7px;min-width:0;width:100%}
+.content>.toolbar h2{flex:0 0 auto;margin:0 6px 0 0;white-space:nowrap;font-size:clamp(17px,1.65vw,22px)}
+.content>.toolbar .teacher-mode-badge{flex:0 0 auto;margin-left:0;padding:5px 7px;font-size:11px}
+.content>.toolbar .meta{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:clamp(11px,1vw,14px)}
+.content>.toolbar .spacer{display:none}
+.content>.toolbar button{flex:0 0 auto;white-space:nowrap;word-break:keep-all;font-size:clamp(11px,.95vw,14px);padding:9px 10px}
+@media(max-width:950px){.content>.toolbar{overflow-x:auto;scrollbar-width:thin}.content>.toolbar .meta{flex:0 0 auto;max-width:270px}}
 </style>
 </head>
 <body>

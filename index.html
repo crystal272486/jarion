@@ -141,6 +141,18 @@ header .topbtn{white-space:nowrap;padding:11px 12px}
 .brand-avatar{width:145px;height:105px;object-fit:contain;object-position:center bottom;flex:none;align-self:flex-end}
 @media(max-width:1150px){.brand-avatar{width:122px;height:90px}}
 @media(max-width:690px){.brand-avatar{width:92px;height:68px}}
+
+/* v1.2.1: compact header only. Preserve the mascot image, hand, seating and all behavior. */
+header{height:82px;min-height:82px;padding:0 16px;gap:10px}
+.brand-identity{gap:9px}
+.brand-avatar{width:104px;height:79px;object-fit:contain;object-position:center bottom;align-self:flex-end}
+.brand-copy .brand{font-size:clamp(26px,2.3vw,35px);line-height:1.05;letter-spacing:-1px}
+.brand-copy .sub{font-size:clamp(11px,.9vw,14px);margin-top:3px}
+.brand-heart{font-size:18px}
+.brand-credit{font-size:12px;padding:7px 10px;margin-left:2px}
+header .topbtn{padding:8px 10px;font-size:13px}
+@media(max-width:1150px){header{height:auto;min-height:78px;padding:5px 12px;row-gap:4px}.brand-avatar{width:95px;height:72px}.brand-copy .brand{font-size:29px}.brand-credit{font-size:11px;padding:6px 8px}}
+@media(max-width:690px){header{min-height:66px}.brand-avatar{width:77px;height:58px}.brand-copy .brand{font-size:24px}.brand-copy .sub{font-size:10px}.brand-identity{gap:6px}.brand-credit{display:none}header .topbtn{font-size:12px;padding:7px 8px}}
 </style>
 </head>
 <body>

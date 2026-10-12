@@ -83,6 +83,25 @@ body.teacher .teacher-mode-badge{display:inline-flex}
 .advanced-management .advanced-hint{font-size:11px;font-weight:500;color:#8290a0;float:right;margin-top:2px}
 .advanced-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:0 10px 10px}
 .advanced-actions button{font-size:11px;padding:10px 3px;min-width:0;white-space:nowrap;word-break:keep-all;letter-spacing:-.35px;justify-content:center;line-height:1.2}
+
+/* v1.1.6: 자리배치도 전용 확대 보기 (데이터 변경 없음) */
+#seatViewOverlay{position:fixed;inset:0;z-index:1000;background:#f4f7fb;display:none;flex-direction:column}
+#seatViewOverlay.open{display:flex}
+#seatViewOverlay .seat-view-header{display:flex;align-items:center;gap:16px;padding:12px 22px;background:#173b67;color:white;flex-shrink:0}
+#seatViewTitle{font-size:clamp(17px,2vw,27px);font-weight:900;flex:1}
+#seatViewOverlay .seat-view-header button{background:white;color:#173b67}
+#seatViewContent{flex:1;overflow:auto;padding:18px 24px 28px;display:flex;align-items:flex-start;justify-content:center}
+#seatViewContent .layout-wrap{width:min(1600px,100%);min-height:0;padding:24px 32px 32px}
+#seatViewContent .layout-wrap .actions{display:none!important}
+#seatViewContent .layout-wrap .cell,#seatViewContent .layout-wrap .pc{min-height:clamp(58px,7vh,90px)}
+#seatViewContent .layout-wrap .name{font-size:clamp(19px,2vw,29px)}
+#seatViewContent .layout-wrap .pc{font-size:clamp(20px,2.1vw,30px)}
+#seatViewContent .layout-wrap .lab{row-gap:30px}
+#seatViewContent .layout-wrap .general-seat{min-height:100px}
+#seatViewContent .layout-wrap .class30-grid{overflow-x:auto}
+#seatViewOverlay .layout-wrap [onclick]{cursor:default;pointer-events:none}
+@media(max-width:700px){#seatViewContent{padding:8px}#seatViewContent .layout-wrap{padding:10px}#seatViewContent .layout-wrap .name{font-size:15px}#seatViewContent .layout-wrap .pc{font-size:17px}}
+@media print{#seatViewOverlay.open{position:static;display:block}#seatViewOverlay.open .seat-view-header{display:none}#seatViewOverlay.open #seatViewContent{display:block;overflow:visible}body.seat-view-open>header,body.seat-view-open>main{display:none!important}}
 </style>
 </head>
 <body>
@@ -153,6 +172,7 @@ body.teacher .teacher-mode-badge{display:inline-flex}
     <h2 id="title">컴퓨터실 자리배치</h2><span class="teacher-mode-badge">교사모드 ON</span>
     <span id="meta" class="meta"></span>
     <div class="spacer"></div>
+    <button class="ghost" onclick="openSeatView()">⛶ 배치도 크게 보기</button>
     <button class="ghost teacher-only" onclick="undo()">↶ 이전 배치</button>
     <button class="ghost teacher-only" onclick="openForceAdjust()">↔ 자리 강제조정</button>
     <button class="primary teacher-only" onclick="saveCurrent()">💾 현재 배치 저장</button>
@@ -176,6 +196,10 @@ body.teacher .teacher-mode-badge{display:inline-flex}
 </section>
 </main>
 
+<div id="seatViewOverlay" role="dialog" aria-modal="true" aria-label="자리배치도 크게 보기">
+  <div class="seat-view-header"><div id="seatViewTitle"></div><button onclick="closeSeatView()">✕ 닫기 (ESC)</button></div>
+  <div id="seatViewContent"></div>
+</div>
 <div id="loginModal" class="modal"><div class="dialog" style="max-width:450px">
 <h2>교사 계정 로그인</h2><p style="font-size:13px;color:#52667c">Firebase에 등록한 교사 이메일과 비밀번호를 입력하세요.</p>
 <label>이메일<input id="loginEmail" type="email" autocomplete="username" style="width:100%;padding:10px;margin:7px 0 12px"></label>
@@ -414,6 +438,30 @@ function render(){
  renderRooms();renderClasses();renderRoster();renderLab();renderSummary();
  const bb=document.querySelector(".blackboard"); if(bb)bb.style.display=currentRoom().type==="class30"?"none":"";
 }
+
+// 자리배치도만 크게 표시합니다. 기존 DOM을 잠시 옮기므로 데이터·배치·Firebase에는 영향이 없습니다.
+let seatViewOriginalParent=null,seatViewOriginalNext=null;
+function openSeatView(){
+  const wrap=document.querySelector('section.content > .layout-wrap');
+  if(!wrap||seatViewOriginalParent)return;
+  seatViewOriginalParent=wrap.parentNode;seatViewOriginalNext=wrap.nextSibling;
+  document.getElementById('seatViewTitle').textContent=`${workspaceRoot?.schools?.[schoolId]?.name||'학교'} · ${schoolYear}학년도 · ${classLabel()} · ${currentRoom().name}`;
+  document.getElementById('seatViewContent').appendChild(wrap);
+  document.getElementById('seatViewOverlay').classList.add('open');
+  document.body.classList.add('seat-view-open');
+  document.addEventListener('keydown',seatViewEscape);
+}
+function seatViewEscape(e){if(e.key==='Escape')closeSeatView();}
+function closeSeatView(){
+  if(!seatViewOriginalParent)return;
+  const wrap=document.querySelector('#seatViewContent > .layout-wrap');
+  if(wrap)seatViewOriginalParent.insertBefore(wrap,seatViewOriginalNext);
+  seatViewOriginalParent=null;seatViewOriginalNext=null;
+  document.getElementById('seatViewOverlay').classList.remove('open');
+  document.body.classList.remove('seat-view-open');
+  document.removeEventListener('keydown',seatViewEscape);
+}
+
 function snapshot(){data.history[data.currentRoom+"|"+current]=JSON.parse(JSON.stringify(assignment()))}
 function shuffle(a){for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function adjacent(a,b){
